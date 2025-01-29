@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello User</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .side-panel {
+            width: 50px;
+            background-color: #333;
+            color: white;
+            height: 100vh; /* Make the side panel as tall as the viewport */
+            transition: width 0.3s;
+            overflow: hidden;
+            position: fixed;
+        }
+        .side-panel.open {
+            width: 250px;
+        }
+        .side-panel .toggle-btn {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .side-panel .user-info {
+            display: none;
+            padding: 10px;
+            text-align: center;
+        }
+        .side-panel.open .user-info {
+            display: block;
+        }
+        .side-panel .user-info img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+        .side-panel .user-info h2, .side-panel .user-info p {
+            margin: 0;
+            padding: 0;
+        }
+        .side-panel .menu {
+            padding: 10px;
+            border-top: 1px solid white;
+            display: none;
+        }
+        .side-panel.open .menu {
+            display: flex;
+            align-items: center;
+        }
+        .side-panel .menu a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 10px;
+            text-align: center;
+        }
+        .side-panel .menu a:hover {
+            background-color: #444;
+        }
+        .side-panel .menu img {
+            margin-right: 10px;
+        }
+        .content {
+            margin-left: 50px; /* Make space for the side panel */
+            flex-grow: 1;
+            padding: 20px;
+            transition: margin-left 0.3s;
+        }
+        .content.shifted {
+            margin-left: 250px; /* Adjust space when side panel is open */
+        }
+        .content table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .content table, .content th, .content td {
+            border: 1px solid black;
+        }
+        .content th, .content td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="side-panel" id="sidePanel">
+        <div class="toggle-btn" onclick="toggleSidePanel()">
+            <i class="fas fa-bars"></i>
+        </div>
+        <div class="user-info">
+            <img src="https://img.shields.io/badge/User-Logo-red" alt="User Logo">
+            <h2>{{ request.user.get_full_name }}</h2>
+            <p>{{ request.user.username }}</p>
+        </div>
+        <div class="menu">
+            <img src="https://img.shields.io/badge/Paper-Logo-blue" alt="Paper Logo">
+            <a href="#">Take Assessment</a>
+        </div>
+    </div>
+    <div class="content" id="content">
+        <h1>Hello, {{ request.user.username }}!</h1>
+        <h2>Login Dates</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for login_time in login_times %}
+                    <tr>
+                        <td>{{ login_time }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <!-- Add logout link -->
+        <p><a href="{% url 'logout' %}">Logout</a></p>
+    </div>
+
+    <script>
+        function toggleSidePanel() {
+            var sidePanel = document.getElementById('sidePanel');
+            var content = document.getElementById('content');
+            sidePanel.classList.toggle('open');
+            content.classList.toggle('shifted');
+        }
+    </script>
+</body>
+</html>
