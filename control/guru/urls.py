@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from django.conf.urls.static import static
+from django.conf import settings
 
 
 urlpatterns = [
@@ -10,4 +12,6 @@ urlpatterns = [
     path('user/', views.user_view, name='user_view'),
     path('index.html', views.index, name='index_html'),  # Add this line
     path('logout/', views.logout_view, name='logout'),  # Add this line
-]
+    path('upload_profile_image/', views.upload_profile_image, name='upload_profile_image'),
+    path('assessment/', views.assessment, name='assessment'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

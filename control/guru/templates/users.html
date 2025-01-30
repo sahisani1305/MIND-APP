@@ -6,54 +6,83 @@
     <title>Hello User</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
+        /* General Styles */
         body {
-            display: flex;
             margin: 0;
             font-family: Arial, sans-serif;
+            overflow-x: hidden;
         }
+
+        /* Background Styles */
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #83a4d4, #b6fbff);
+            z-index: -1;
+        }
+
+        /* Side Panel Styles */
         .side-panel {
-            width: 50px;
+            width: 40px;
             background-color: #333;
             color: white;
-            height: 100vh; /* Make the side panel as tall as the viewport */
-            transition: width 0.3s;
-            overflow: hidden;
+            height: 100vh;
+            transition: all 0.3s ease;
             position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            overflow: hidden;
         }
+
         .side-panel.open {
             width: 250px;
         }
+
         .side-panel .toggle-btn {
             padding: 10px;
             cursor: pointer;
         }
+
         .side-panel .user-info {
             display: none;
             padding: 10px;
             text-align: center;
         }
+
         .side-panel.open .user-info {
             display: block;
         }
+
         .side-panel .user-info img {
             width: 80px;
             height: 80px;
             border-radius: 50%;
             margin-bottom: 10px;
+            cursor: pointer;
         }
-        .side-panel .user-info h2, .side-panel .user-info p {
+
+        .side-panel .user-info h2,
+        .side-panel .user-info p {
             margin: 0;
             padding: 0;
         }
+
         .side-panel .menu {
             padding: 10px;
             border-top: 1px solid white;
             display: none;
         }
+
         .side-panel.open .menu {
             display: flex;
+            flex-direction: column;
             align-items: center;
         }
+
         .side-panel .menu a {
             display: block;
             color: white;
@@ -61,77 +90,437 @@
             padding: 10px;
             text-align: center;
         }
+
         .side-panel .menu a:hover {
             background-color: #444;
         }
-        .side-panel .menu img {
-            margin-right: 10px;
-        }
-        .content {
-            margin-left: 50px; /* Make space for the side panel */
-            flex-grow: 1;
-            padding: 20px;
-            transition: margin-left 0.3s;
-        }
-        .content.shifted {
-            margin-left: 250px; /* Adjust space when side panel is open */
-        }
-        .content table {
+
+        /* Overlay and Blur Effect */
+        .content-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            border-collapse: collapse;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 999;
         }
-        .content table, .content th, .content td {
-            border: 1px solid black;
+
+        .content-overlay.active {
+            opacity: 1;
+            visibility: visible;
         }
-        .content th, .content td {
-            padding: 8px;
-            text-align: left;
+
+        /* Content Styles */
+        .content {
+            margin-left: 50px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        /* Profile Image Upload Styles */
+        .profile-image-upload {
+            display: none;
+        }
+
+        .profile-image-label {
+            cursor: pointer;
+            color: #3498db;
+            text-decoration: underline;
+            margin-top: 10px;
+            display: block;
+        }
+
+        .profile-image-label:hover {
+            color: #2980b9;
+        }
+
+        /* Calendar Container Styles */
+        .calendar-container,
+        .chart-container,
+        .line-graph-container {
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            width: 250px;
+            margin: 10px;
+            text-align: center;
+            display: inline-block;
+            vertical-align: top;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+            margin: 10px auto;
+        }
+
+        .day {
+            width: 25px;
+            height: 25px;
+            line-height: 25px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 50%;
+            background-color: #f9f9f9;
+            font-size: 0.8em;
+            position: relative;
+        }
+
+        .day.active {
+            background-color: #3498db;
+            color: white;
+            z-index: 1;
+        }
+
+        .day.active::before {
+            content: '🔥';
+            font-size: 24px;
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: -1;
+            animation: flame 1s infinite;
+        }
+
+        @keyframes flame {
+            0%, 100% {
+                transform: translateX(-50%) translateY(0) scale(1);
+            }
+            50% {
+                transform: translateX(-50%) translateY(-5px) scale(1.1);
+            }
+        }
+
+        /* Dashboard Layout */
+        .dashboard-layout {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            padding: 10px;
+        }
+
+        /* Navigation Buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            width: 100%;
+        }
+
+        .nav-buttons button {
+            padding: 5px 10px;
+            cursor: pointer;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .nav-buttons button:hover {
+            background-color: #2980b9;
         }
     </style>
 </head>
 <body>
+    <div class="background"></div>
+    <div class="content-overlay" id="overlay"></div>
     <div class="side-panel" id="sidePanel">
         <div class="toggle-btn" onclick="toggleSidePanel()">
             <i class="fas fa-bars"></i>
         </div>
         <div class="user-info">
-            <img src="https://img.shields.io/badge/User-Logo-red" alt="User Logo">
+            <img id="profileImage" src="{% if profile_image_url %}{{ profile_image_url }}{% else %}https://img.shields.io/badge/User-Logo-red{% endif %}" alt="User Logo">
+            <label for="profileImageUpload" class="profile-image-label">Change Profile Image</label>
+            <input type="file" id="profileImageUpload" class="profile-image-upload" accept="image/*">
             <h2>{{ request.user.get_full_name }}</h2>
             <p>{{ request.user.username }}</p>
         </div>
         <div class="menu">
             <img src="https://img.shields.io/badge/Paper-Logo-blue" alt="Paper Logo">
-            <a href="#">Take Assessment</a>
+            <a href="{% url 'assessment' %}">Take Assessment</a>
+            <a href="{% url 'logout' %}">Logout</a>
         </div>
     </div>
+
     <div class="content" id="content">
-        <h1>Hello, {{ request.user.username }}!</h1>
-        <h2>Login Dates</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for login_time in login_times %}
-                    <tr>
-                        <td>{{ login_time }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <!-- Add logout link -->
-        <p><a href="{% url 'logout' %}">Logout</a></p>
+        <h1>Hello, {{ request.user.get_full_name }}!</h1>
+        {% if not profile_image_url %}
+            <p>Please <a href="" onclick="document.getElementById('profileImageUpload').click()">add a profile photo</a>.</p>
+        {% endif %}
+
+        <div class="dashboard-layout">
+            <div class="calendar-container">
+                <h2 style="font-size: 1em;">Streaks</h2>
+                <div class="nav-buttons">
+                    <button onclick="changeMonth(-1)">&#9664;</button>
+                    <div id="monthYear"></div>
+                    <button onclick="changeMonth(1)">&#9654;</button>
+                </div>
+                <div class="calendar" id="calendar"></div>
+            </div>
+
+            {% if scores %}
+                <div class="chart-container">
+                    <h2 style="font-size: 1em;">Latest Assessment Scores</h2>
+                    <canvas id="dass21Chart" width="200" height="200"></canvas>
+                    <p style="font-size: 0.8em;">Depression: {{ severity.depression }}</p>
+                    <p style="font-size: 0.8em;">Anxiety: {{ severity.anxiety }}</p>
+                    <p style="font-size: 0.8em;">Stress: {{ severity.stress }}</p>
+                </div>
+
+                <div class="line-graph-container">
+                    <h2 style="font-size: 1em;">Cumulative Scores Over Time</h2>
+                    <canvas id="lineChart" width="200" height="200"></canvas>
+                </div>
+            {% else %}
+                <div class="chart-container">
+                    <p style="font-size: 0.8em;">No assessment scores available. Please take the assessment.</p>
+                </div>
+            {% endif %}
+        </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // Toggle Side Panel
         function toggleSidePanel() {
-            var sidePanel = document.getElementById('sidePanel');
-            var content = document.getElementById('content');
+            const sidePanel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('overlay');
             sidePanel.classList.toggle('open');
-            content.classList.toggle('shifted');
+            overlay.classList.toggle('active');
         }
+
+        // Close panel when clicking overlay
+        document.getElementById('overlay').addEventListener('click', function () {
+            const sidePanel = document.getElementById('sidePanel');
+            const overlay = document.getElementById('overlay');
+            sidePanel.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+
+        // Handle Profile Image Upload
+        document.getElementById('profileImageUpload').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById('profileImage').src = e.target.result;
+                    uploadImage(file);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Upload Image to Server
+        function uploadImage(file) {
+            const formData = new FormData();
+            formData.append('profile_image', file);
+
+            fetch('/upload_profile_image/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            }).then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Image uploaded successfully');
+                    } else {
+                        console.error('Failed to upload image');
+                    }
+                });
+        }
+
+        // Get CSRF Token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Calendar functionality
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+
+        function renderCalendar() {
+            const loginTimes = [
+                {% for login_time in login_times %}
+                    '{{ login_time.date }}',
+                {% endfor %}
+            ];
+
+            const calendar = document.getElementById('calendar');
+            const monthYear = document.getElementById('monthYear');
+            const monthNames = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"];
+
+            monthYear.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+            calendar.innerHTML = '';
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'day';
+                calendar.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'day';
+                dayCell.textContent = day;
+
+                const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                if (loginTimes.includes(dateString)) {
+                    dayCell.classList.add('active');
+                }
+
+                calendar.appendChild(dayCell);
+            }
+        }
+
+        function changeMonth(offset) {
+            currentMonth += offset;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        }
+
+        // Initialize calendar and charts
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCalendar();
+
+            {% if scores %}
+            // Pie Chart for Latest Scores
+            const ctxPie = document.getElementById('dass21Chart').getContext('2d');
+            new Chart(ctxPie, {
+                type: 'pie',
+                data: {
+                    labels: ['Depression', 'Anxiety', 'Stress'],
+                    datasets: [{
+                        data: [{{ scores.depression }}, {{ scores.anxiety }}, {{ scores.stress }}],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(75, 192, 192, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(75, 192, 192, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+
+            // Line Graph for Cumulative Scores Over Time
+            const ctxLine = document.getElementById('lineChart').getContext('2d');
+            new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: [
+                        {% for score in cumulative_scores %}
+                            '{{ score.date }}',
+                        {% endfor %}
+                    ],
+                    datasets: [
+                        {
+                            label: 'Depression',
+                            data: [
+                                {% for score in cumulative_scores %}
+                                    {{ score.depression }},
+                                {% endfor %}
+                            ],
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 2,
+                            fill: false
+                        },
+                        {
+                            label: 'Anxiety',
+                            data: [
+                                {% for score in cumulative_scores %}
+                                    {{ score.anxiety }},
+                                {% endfor %}
+                            ],
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            fill: false
+                        },
+                        {
+                            label: 'Stress',
+                            data: [
+                                {% for score in cumulative_scores %}
+                                    {{ score.stress }},
+                                {% endfor %}
+                            ],
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 2,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Score'
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+            {% endif %}
+        });
     </script>
 </body>
 </html>

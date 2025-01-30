@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MindMate - Your Mental Health Companion</title>
     <style>
         body, html {
@@ -28,7 +28,7 @@
             width: 85%;
             margin: 0 auto;
             padding: 15px;
-            background-color: rgba(255, 255, 255, 0.2);
+            background-color: rgba(255, 255, 255, 0.1);
             border-radius: 20px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
             transition: max-height 0.5s ease, margin-top 0.5s ease, margin-bottom 0.5s ease;
@@ -139,7 +139,7 @@
 
         @media (max-width: 480px) {
             .chat-container {
-                width: 95%;
+                width: 85%;
                 padding: 15px;
             }
 
@@ -321,8 +321,8 @@
             function addLinks() {
                 const message2 = document.getElementById('message2');
                 message2.innerHTML += `
-                    <a href="javascript:void(0);" id="loginLink">Login</a>
-                    <a href="javascript:void(0);" id="signupLink">Signup</a>
+                    <a href="javascript:void(0);" id="loginLink" class="fade-in">Login</a>
+                    <a href="javascript:void(0);" id="signupLink" class="fade-in">Signup</a>
                 `;
                 document.getElementById('loginLink').addEventListener('click', function() {
                     hideAllForms();
@@ -335,7 +335,6 @@
                     chatContainer.style.maxHeight = '80%';
                 });
             }
-        
             // Function to hide all forms
             function hideAllForms() {
                 const forms = document.querySelectorAll('.chat-message.bot-message .login-input-container, .chat-message.bot-message .signup-input-container');
@@ -352,10 +351,12 @@
                     <div class="login-input-container">
                         <form id="loginForm" onsubmit="event.preventDefault(); submitLogin();">
                             <label for="username">Username:</label>
+                            <br>
                             <input type="text" id="username" name="username" placeholder="Enter your username">
                             <span class="error-message" id="usernameError"></span>
         
                             <label for="password">Password:</label>
+                            <br>
                             <input type="password" id="password" name="password" placeholder="Enter your password">
                             <span class="error-message" id="passwordError"></span>
         
@@ -377,14 +378,17 @@
                     <div class="signup-input-container">
                         <form id="signupForm" onsubmit="event.preventDefault(); submitSignup();">
                             <label for="name">Name:</label>
+                            <br>
                             <input type="text" id="name" name="name" placeholder="Enter your name">
                             <span class="error-message" id="nameError"></span>
         
                             <label for="email">Email:</label>
-                            <input type="email" id="email" name="email" placeholder="Enter your email">
+                            <br>
+                            <input type="text" id="email" name="email" placeholder="Enter your email">
                             <span class="error-message" id="emailError"></span>
         
                             <label for="mobile">Mobile Number:</label>
+                            <br>
                             <input type="text" id="mobile" name="mobile" placeholder="Enter your mobile number">
                             <span class="error-message" id="mobileError"></span>
         
@@ -394,14 +398,17 @@
                             <span class="error-message" id="ageError"></span>
         
                             <label for="occupation">Occupation:</label>
+                            <br>
                             <input type="text" id="occupation" name="occupation" placeholder="Enter your occupation">
                             <span class="error-message" id="occupationError"></span>
         
                             <label for="username">Username:</label>
+                            <br>
                             <input type="text" id="username" name="username" placeholder="Enter your username">
                             <span class="error-message" id="usernameError"></span>
         
                             <label for="password">Password:</label>
+                            <br>
                             <input type="password" id="password" name="password" placeholder="Enter your password">
                             <span class="error-message" id="passwordError"></span>
         
@@ -481,11 +488,12 @@
                 document.getElementById('nameError').textContent = 'Name must start with a capital letter.';
                 isValid = false;
             }
+
+            // Validation for occupation starting with a capital letter
             if (!/^[A-Z]/.test(occupation)) {
-                document.getElementById('nameError').textContent = 'Occupation must start with a capital letter.';
+                document.getElementById('occupationError').textContent = 'Occupation must start with a capital letter.';
                 isValid = false;
             }
-        
             // Validation for mobile number being exactly 10 digits
             if (!/^\d{10}$/.test(mobile)) {
                 document.getElementById('mobileError').textContent = 'Mobile number must be exactly 10 digits.';
