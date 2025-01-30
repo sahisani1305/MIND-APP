@@ -3,7 +3,9 @@ from django.contrib.auth import authenticate, login as auth_login
 from bson import ObjectId
 from django.contrib.auth.models import User, Group
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.http import JsonResponse
+from django.utils import timezone
+
 
 # MongoDB setup
 client = MongoClient("mongodb://localhost:27017/")
@@ -12,13 +14,12 @@ db = client.mindmate_db
 def index(request):
     return render(request, 'index.html')
 
-from django.utils import timezone
-
 def login_view(request):
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
         user = authenticate(request, username=username, password=password)
+        
         if user is not None:
             auth_login(request, user)
 
@@ -33,13 +34,13 @@ def login_view(request):
             )
 
             if user.is_superuser:
-                return redirect('admin_page')  # redirect to admin page
+                return JsonResponse({'status': 'success', 'redirect': 'admin_page'})  # Redirect to admin page
             else:
-                return redirect('user_view')  # redirect to user page
+                return JsonResponse({'status': 'success', 'redirect': 'user'})  # Redirect to user page
         else:
-            return HttpResponse('Invalid login credentials')
+            return JsonResponse({'status': 'error', 'message': 'Invalid login credentials'}, status=400)
     else:
-        return render(request, 'login.html')
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
 
 def signup_view(request):
     if request.method == 'POST':
@@ -50,6 +51,10 @@ def signup_view(request):
         occupation = request.POST['occupation']
         username = request.POST['username']
         password = request.POST['password']
+        
+        # Check if username already exists
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({'status': 'error', 'message': 'Username already exists'}, status=400)
         
         # Create user
         user = User.objects.create_user(username=username, email=email, password=password)
@@ -73,11 +78,11 @@ def signup_view(request):
         }
         db.users.insert_one(user_data)
         
-        # Pass success context to the template
-        return render(request, 'signup.html', {'success': True})
+        # Return success response
+        return JsonResponse({'status': 'success', 'message': 'Signup successful! Please login.'})
     else:
-        return render(request, 'signup.html')
-
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    
 def admin_view(request):
     users = db.users.find()
     return render(request, 'admin.html', {'users': users})
