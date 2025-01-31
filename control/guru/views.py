@@ -1,21 +1,65 @@
 import os
-from pymongo import MongoClient
+import random
+from datetime import datetime
+from decorators import admin_required
 from bson import ObjectId
-from django.contrib.auth import authenticate, login as auth_login, logout
-from django.contrib.auth.models import User, Group
-from django.shortcuts import render, redirect
-from django.http import JsonResponse
-from django.utils import timezone
-from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from django.urls import reverse
+from django.contrib.auth import authenticate, login as auth_login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User, Group
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from pymongo import MongoClient
 
 # MongoDB setup
 client = MongoClient("mongodb://localhost:27017/")
 db = client.mindmate_db
+questions_collection = db.questions  # Assuming your collection is named 'questions'
 
 def index(request):
     return render(request, 'index.html')
+
+def fetch_questions_from_db():
+    categories = questions_collection.find({}, {"_id": 0, "category": 1, "questions": 1})
+    questions_db = {}
+    for category in categories:
+        if "category" in category and "questions" in category:
+            questions_db[category["category"]] = category["questions"]
+        else:
+            print(f"Skipping document due to missing fields: {category}")
+    return questions_db
+
+def select_random_questions(username, questions_db, num_questions_per_category=7):
+    # Access the user_questions collection
+    user_record = db.user_questions.find_one({"username": username})
+    
+    if user_record:
+        previously_asked_questions = user_record.get("questions", {})
+    else:
+        previously_asked_questions = {}
+
+    selected_questions = {}
+    for category, questions in questions_db.items():
+        # Filter out previously asked questions for this user
+        available_questions = [q for q in questions if q not in previously_asked_questions.get(category, [])]
+
+        if len(available_questions) >= num_questions_per_category:
+            selected_questions[category] = random.sample(available_questions, num_questions_per_category)
+        else:
+            print(f"Not enough questions in category '{category}' to select {num_questions_per_category} questions.")
+            selected_questions[category] = available_questions
+
+        previously_asked_questions[category] = previously_asked_questions.get(category, []) + selected_questions[category]
+    
+    # Update the user_questions collection
+    db.user_questions.update_one(
+        {"username": username},
+        {"$set": {"questions": previously_asked_questions}},
+        upsert=True
+    )
+
+    return selected_questions
 
 @login_required
 def assessment(request):
@@ -95,7 +139,15 @@ def assessment(request):
 
         return redirect('user_view')
 
-    return render(request, 'assessment.html')
+    questions_db = fetch_questions_from_db()
+    random_questions = select_random_questions(request.user.username, questions_db, 7)
+    
+    questions = []
+    for category, q_list in random_questions.items():
+        for q in q_list:
+            questions.append({"text": q})
+
+    return render(request, 'assessment.html', {'questions': questions})
 
 def login_view(request):
     if request.method == 'POST':
@@ -120,9 +172,7 @@ def login_view(request):
             return JsonResponse({'status': 'error', 'message': 'Invalid login credentials'}, status=400)
     else:
         return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.contrib.auth.models import User, Group
+
 def signup_view(request):
     if request.method == 'POST':
         name = request.POST.get('name', None)
@@ -167,33 +217,27 @@ def signup_view(request):
         return JsonResponse({'status': 'success', 'message': 'Signup successful! Please login.'})
     else:
         return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
-    
-from django.shortcuts import render, redirect
 
+@login_required
+@admin_required
 def admin_view(request):
     users = list(db.users.find())
     for user in users:
-        user['id_str'] = str(user['_id'])  # Create a new field 'id_str' that holds the string version of '_id'
+        user['id_str'] = str(user['_id'])
 
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         if user_id:
             try:
-                # Delete user from MongoDB
                 db.users.delete_one({'_id': ObjectId(user_id)})
-                
-                # Also delete user from Django admin
-                # Assuming you have a matching user in Django with the same email or username
                 django_user = User.objects.filter(email=user.email).first()
                 if django_user:
                     django_user.delete()
             except Exception as e:
                 print(e)
-        return redirect('admin_page')  # Replace 'admin_view' with your actual URL name
+        return redirect('admin_page')
 
     return render(request, 'admin.html', {'users': users})
-
-from datetime import datetime
 
 @login_required
 def user_view(request):
@@ -215,17 +259,23 @@ def user_view(request):
 
     assessments = db.assessments.find({'username': request.user.username}).sort('timestamp', 1)
     scores_by_date = {}
+    all_scores = []
     for assessment in assessments:
         date = assessment['timestamp'].strftime('%Y-%m-%d')
         if date not in scores_by_date:
             scores_by_date[date] = {
-                'depression': 0,
-                'anxiety': 0,
-                'stress': 0,
+                'depression': assessment['depression'],
+                'anxiety': assessment['anxiety'],
+                'stress': assessment['stress'],
+                'severity': assessment['severity'],
             }
-        scores_by_date[date]['depression'] = assessment['depression']
-        scores_by_date[date]['anxiety'] = assessment['anxiety']
-        scores_by_date[date]['stress'] = assessment['stress']
+        all_scores.append({
+            'date': date,
+            'depression': assessment['depression'],
+            'anxiety': assessment['anxiety'],
+            'stress': assessment['stress'],
+            'severity': assessment['severity'],
+        })
 
     daily_scores = []
     for date, scores in sorted(scores_by_date.items()):
@@ -241,7 +291,6 @@ def user_view(request):
     severity = latest_assessment['severity'] if latest_assessment else None
     latest_assessment_date = latest_assessment['timestamp'].strftime('%Y-%m-%d') if latest_assessment else None
 
-    # Check if the latest assessment date is today
     today_date = datetime.now().strftime('%Y-%m-%d')
     has_taken_assessment_today = (latest_assessment_date == today_date)
 
@@ -251,9 +300,10 @@ def user_view(request):
         'scores': scores,
         'severity': severity,
         'daily_scores': daily_scores,
+        'all_scores': all_scores,
         'latest_assessment_date': latest_assessment_date,
         'has_taken_assessment_today': has_taken_assessment_today,
-        'user_data': user_data  # Add the user data to the context
+        'user_data': user_data
     })
 
 def logout_view(request):

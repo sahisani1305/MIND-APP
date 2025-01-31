@@ -321,25 +321,6 @@
             color: rgba(255, 252, 252, 0.8);
             font-weight: 400;
             line-height: 1.4;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap; 
-            position: relative;
-        }
-
-        .user-details p:hover::after {
-            content: attr(data-full-text);
-            position: absolute;
-            left: 0;
-            top: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            color: #fff;
-            padding: 5px;
-            border-radius: 5px;
-            white-space: normal;
-            z-index: 10;
-            width: max-content;
-            max-width: 300px;
         }
         @media (max-width: 768px) {
             .dashboard-layout {
@@ -378,6 +359,17 @@
             visibility: visible;
             opacity: 1;
         }
+        #assessmentDateDropdown {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: white;
+            font-size: 0.9em;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
     </style>
     </head>
 <body>
@@ -398,7 +390,8 @@
             
             <div class="user-details">
                 <h2>{{ user_data.username }}</h2>
-                <p><strong>Email:</strong> {{ user_data.email }}</p>
+                <p><strong>Name:</strong> {{ user_data.name }}</p>
+                <p data-full-text="{{ user_data.email }}"><strong>Email:</strong> {{ user_data.email }}</p>
                 <p><strong>Mobile Number:</strong> {{ user_data.mobile }}</p>
                 <p><strong>Age:</strong> {{ user_data.age }}</p>
                 <p><strong>Occupation:</strong> {{ user_data.occupation }}</p>
@@ -406,12 +399,14 @@
             </div>
         </div>
         <div class="menu">
-            <img src="https://img.shields.io/badge/Paper-Logo-blue" alt="Paper Logo">
             <div class="assessment-link" style="position: relative; display: inline-block;">
-                <a href="{% url 'assessment' %}" class="{% if has_taken_assessment_today %}disabled{% endif %}">Take Assessment</a>
-                {% if has_taken_assessment_today %}
-                    <span class="tooltip">Assessment taken today, come back tomorrow</span>
-                {% endif %}
+            <a href="{% url 'assessment' %}" class="{% if has_taken_assessment_today %}disabled{% endif %}" style="display: flex; align-items: center;">
+                <img src="/media/profile_images/ext_file_generic-512.webp" alt="Paper Logo" style="margin-right: 5px; width: 32px; height: 32px;">
+                Take Assessment
+            </a>
+            {% if has_taken_assessment_today %}
+                <span class="tooltip">Assessment taken today, come back tomorrow</span>
+            {% endif %}
             </div>
         </div>
     </div>
@@ -443,11 +438,23 @@
 
                 {% if scores %}
                 <div class="chart-container">
-                    <h2 style="font-size: 1em;">Latest Assessment Scores</h2>
+                    <h2 style="font-size: 1em;">Assessment Scores</h2>
+                    <!-- Dropdown to select assessment date -->
+                    <select id="assessmentDateDropdown" onchange="updatePieChart()">
+                        <option value="latest">Latest Assessment</option>
+                        {% for score in all_scores %}
+                            <option value="{{ score.date }}">{{ score.date }}</option>
+                        {% endfor %}
+                    </select>
                     <canvas id="dass21Chart"></canvas>
-                    <p style="font-size: 0.8em;">Depression: {{ severity.depression }}</p>
-                    <p style="font-size: 0.8em;">Anxiety: {{ severity.anxiety }}</p>
-                    <p style="font-size: 0.8em;">Stress: {{ severity.stress }}</p>
+                    <p style="font-size: 0.8em;">Depression: <span id="depressionSeverity">{{ severity.depression }}</span></p>
+                    <p style="font-size: 0.8em;">Anxiety: <span id="anxietySeverity">{{ severity.anxiety }}</span></p>
+                    <p style="font-size: 0.8em;">Stress: <span id="stressSeverity">{{ severity.stress }}</span></p>
+                </div>
+                {% else %}
+                <div class="chart-container">
+                    <h2 style="font-size: 1em;">No Assessment Scores</h2>
+                    <p>Please take the assessment test first.</p>
                 </div>
                 {% endif %}
             </div>
@@ -460,284 +467,330 @@
             {% endif %}
         </div>
     </div>
-
-    <script>
-        function toggleLogoutBox() {
-            const logoutBox = document.getElementById('logoutBox');
-            logoutBox.style.display = logoutBox.style.display === 'none' ? 'block' : 'none';
-        }
-
-        document.addEventListener('click', function(event) {
-            const logoutBox = document.getElementById('logoutBox');
-            const profileImageTopRight = document.getElementById('profileImageTopRight');
-            if (!logoutBox.contains(event.target) && !profileImageTopRight.contains(event.target)) {
-                logoutBox.style.display = 'none';
-            }
-        });
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Toggle Side Panel
-        function toggleSidePanel() {
-            const sidePanel = document.getElementById('sidePanel');
-            const overlay = document.getElementById('overlay');
-            sidePanel.classList.toggle('open');
-            overlay.classList.toggle('active');
+        function toggleLogoutBox() {
+        const logoutBox = document.getElementById('logoutBox');
+        logoutBox.style.display = logoutBox.style.display === 'none' ? 'block' : 'none';
+    }
+    
+    document.addEventListener('click', function(event) {
+        const logoutBox = document.getElementById('logoutBox');
+        const profileImageTopRight = document.getElementById('profileImageTopRight');
+        if (!logoutBox.contains(event.target) && !profileImageTopRight.contains(event.target)) {
+            logoutBox.style.display = 'none';
         }
-
-        // Close panel when clicking overlay
-        document.getElementById('overlay').addEventListener('click', function() {
-            const sidePanel = document.getElementById('sidePanel');
-            const overlay = document.getElementById('overlay');
-            sidePanel.classList.remove('open');
-            overlay.classList.remove('active');
-        });
-
-        // Handle Profile Image Upload
-        document.getElementById('profileImageUpload').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('profileImage').src = e.target.result;
-                    uploadImage(file);
-                };
-                reader.readAsDataURL(file);
+    });
+    
+    // Toggle Side Panel
+    function toggleSidePanel() {
+        const sidePanel = document.getElementById('sidePanel');
+        const overlay = document.getElementById('overlay');
+        sidePanel.classList.toggle('open');
+        overlay.classList.toggle('active');
+    }
+    
+    // Close panel when clicking overlay
+    document.getElementById('overlay').addEventListener('click', function() {
+        const sidePanel = document.getElementById('sidePanel');
+        const overlay = document.getElementById('overlay');
+        sidePanel.classList.remove('open');
+        overlay.classList.remove('active');
+    });
+    
+    // Handle Profile Image Upload
+    document.getElementById('profileImageUpload').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('profileImage').src = e.target.result;
+                uploadImage(file);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Upload Image to Server
+    function uploadImage(file) {
+        const formData = new FormData();
+        formData.append('profile_image', file);
+    
+        fetch('/upload_profile_image/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Image uploaded successfully');
+            } else {
+                console.error('Failed to upload image');
             }
         });
-
-        // Upload Image to Server
-        function uploadImage(file) {
-            const formData = new FormData();
-            formData.append('profile_image', file);
-
-            fetch('/upload_profile_image/', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('Image uploaded successfully');
-                } else {
-                    console.error('Failed to upload image');
-                }
-            });
-        }
-
-        // Get CSRF Token
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
+    }
+    
+    // Get CSRF Token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
             }
-            return cookieValue;
         }
-
-        // Calendar functionality
-        let currentYear = new Date().getFullYear();
-        let currentMonth = new Date().getMonth();
-
-        function renderCalendar() {
-            const loginTimes = [
-                {% for login_time in login_times %}
-                    '{{ login_time.date }}',
-                {% endfor %}
-            ];
-
-            const calendar = document.getElementById('calendar');
-            const monthYear = document.getElementById('monthYear');
-            const monthNames = ["January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"];
-
-            monthYear.textContent = `${monthNames[currentMonth]} ${currentYear}`;
-            calendar.innerHTML = '';
-
-            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-            for (let i = 0; i < firstDay; i++) {
-                const emptyCell = document.createElement('div');
-                emptyCell.className = 'day';
-                calendar.appendChild(emptyCell);
-            }
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayCell = document.createElement('div');
-                dayCell.className = 'day';
-                dayCell.textContent = day;
-
-                const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                if (loginTimes.includes(dateString)) {
-                    dayCell.classList.add('active');
-                }
-
-                calendar.appendChild(dayCell);
-            }
+        return cookieValue;
+    }
+    
+    // Calendar functionality
+    let currentYear = new Date().getFullYear();
+    let currentMonth = new Date().getMonth();
+    
+    function renderCalendar() {
+        const loginTimes = [
+            {% for login_time in login_times %}
+                '{{ login_time.date }}',
+            {% endfor %}
+        ];
+    
+        const calendar = document.getElementById('calendar');
+        const monthYear = document.getElementById('monthYear');
+        const monthNames = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"];
+    
+        monthYear.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+        calendar.innerHTML = '';
+    
+        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'day';
+            calendar.appendChild(emptyCell);
         }
-
-        function changeMonth(offset) {
-            currentMonth += offset;
-            if (currentMonth < 0) {
-                currentMonth = 11;
-                currentYear--;
-            } else if (currentMonth > 11) {
-                currentMonth = 0;
-                currentYear++;
+    
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayCell = document.createElement('div');
+            dayCell.className = 'day';
+            dayCell.textContent = day;
+    
+            const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            if (loginTimes.includes(dateString)) {
+                dayCell.classList.add('active');
             }
-            renderCalendar();
+    
+            calendar.appendChild(dayCell);
         }
-
-        // Initialize calendar and charts
-        document.addEventListener('DOMContentLoaded', () => {
-            renderCalendar();
-
-            {% if scores %}
-            // Pie Chart for Latest Scores
-            const ctxPie = document.getElementById('dass21Chart').getContext('2d');
-            new Chart(ctxPie, {
-                type: 'pie',
-                data: {
-                    labels: ['Depression', 'Anxiety', 'Stress'],
-                    datasets: [{
-                        data: [{{ scores.depression }}, {{ scores.anxiety }}, {{ scores.stress }}],
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.2)',
-                            'rgba(54, 162, 235, 0.2)',
-                            'rgba(75, 192, 192, 0.2)'
-                        ],
-                        borderColor: [
-                            'rgba(255, 99, 132, 1)',
-                            'rgba(54, 162, 235, 1)',
-                            'rgba(75, 192, 192, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.raw !== null) {
-                                        label += context.raw;
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    },
-                    animation: {
-                        animateScale: true,
-                        animateRotate: true
-                    },
-                    hover: {
-                        onHover: function(e, elements) {
-                            if (elements.length) {
-                                e.native.target.style.cursor = 'pointer';
-                            } else {
-                                e.native.target.style.cursor = 'default';
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Line Graph for Cumulative Scores Over Time
-            const ctxLine = document.getElementById('lineChart').getContext('2d');
-            new Chart(ctxLine, {
-                type: 'line',
-                data: {
-                    labels: [
-                        {% for score in daily_scores %}
-                            '{{ score.date }}',
-                        {% endfor %}
+    }
+    
+    function changeMonth(offset) {
+        currentMonth += offset;
+        if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        } else if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+        }
+        renderCalendar();
+    }
+    
+    // Initialize calendar and charts
+    document.addEventListener('DOMContentLoaded', () => {
+        renderCalendar();
+    
+        {% if scores %}
+        // Pie Chart for Latest Scores
+        const initialDepression = {{ scores.depression|default:0 }};
+        const initialAnxiety = {{ scores.anxiety|default:0 }};
+        const initialStress = {{ scores.stress|default:0 }};
+    
+        const ctxPie = document.getElementById('dass21Chart').getContext('2d');
+        pieChart = new Chart(ctxPie, {
+            type: 'pie',
+            data: {
+                labels: ['Depression', 'Anxiety', 'Stress'],
+                datasets: [{
+                    data: [initialDepression, initialAnxiety, initialStress],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(75, 192, 192, 0.2)'
                     ],
-                    datasets: [
-                        {
-                            label: 'Depression',
-                            data: [
-                                {% for score in daily_scores %}
-                                    {{ score.depression }},
-                                {% endfor %}
-                            ],
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                            borderWidth: 2,
-                            fill: false
-                        },
-                        {
-                            label: 'Anxiety',
-                            data: [
-                                {% for score in daily_scores %}
-                                    {{ score.anxiety }},
-                                {% endfor %}
-                            ],
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                            borderWidth: 2,
-                            fill: false
-                        },
-                        {
-                            label: 'Stress',
-                            data: [
-                                {% for score in daily_scores %}
-                                    {{ score.stress }},
-                                {% endfor %}
-                            ],
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            borderWidth: 2,
-                            fill: false
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        x: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Date'
-                            }
-                        },
-                        y: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Score'
-                            },
-                            beginAtZero: true
-                        }
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(75, 192, 192, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
                     },
-                    plugins: {
-                        legend: {
-                            position: 'top',
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.raw !== null) {
+                                    label += context.raw;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true
+                },
+                hover: {
+                    onHover: function(e, elements) {
+                        if (elements.length) {
+                            e.native.target.style.cursor = 'pointer';
+                        } else {
+                            e.native.target.style.cursor = 'default';
                         }
                     }
                 }
-            });
-            {% endif %}
+            }
         });
-    </script>
+    
+        // Line Graph for Cumulative Scores Over Time
+        const ctxLine = document.getElementById('lineChart').getContext('2d');
+        new Chart(ctxLine, {
+            type: 'line',
+            data: {
+                labels: [
+                    {% for score in daily_scores %}
+                        '{{ score.date }}',
+                    {% endfor %}
+                ],
+                datasets: [
+                    {
+                        label: 'Depression',
+                        data: [
+                            {% for score in daily_scores %}
+                                {{ score.depression }},
+                            {% endfor %}
+                        ],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: 'Anxiety',
+                        data: [
+                            {% for score in daily_scores %}
+                                {{ score.anxiety }},
+                            {% endfor %}
+                        ],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderWidth: 2,
+                        fill: false
+                    },
+                    {
+                        label: 'Stress',
+                        data: [
+                            {% for score in daily_scores %}
+                                {{ score.stress }},
+                            {% endfor %}
+                        ],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 2,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        },
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                }
+            }
+        });
+        {% endif %}
+    });
+    
+    // Function to update the pie chart based on the selected date
+    function updatePieChart() {
+        const selectedDate = document.getElementById('assessmentDateDropdown').value;
+        const allScores = {
+            {% for score in all_scores %}
+                '{{ score.date }}': {
+                    depression: {{ score.depression }},
+                    anxiety: {{ score.anxiety }},
+                    stress: {{ score.stress }},
+                    severity: {
+                        depression: '{{ score.severity.depression }}',
+                        anxiety: '{{ score.severity.anxiety }}',
+                        stress: '{{ score.severity.stress }}',
+                    }
+                },
+            {% endfor %}
+            'latest': {
+                depression: {{ scores.depression|default:0 }},
+                anxiety: {{ scores.anxiety|default:0 }},
+                stress: {{ scores.stress|default:0 }},
+                severity: {
+                    depression: '{{ severity.depression }}',
+                    anxiety: '{{ severity.anxiety }}',
+                    stress: '{{ severity.stress }}',
+                }
+            }
+        };
+    
+        const selectedScore = allScores[selectedDate] || allScores['latest']; // Fallback to latest if selectedDate is not found
+    
+        // Update the pie chart data
+        const depression = selectedScore.depression || 0; // Default to 0 if undefined
+        const anxiety = selectedScore.anxiety || 0; // Default to 0 if undefined
+        const stress = selectedScore.stress || 0; // Default to 0 if undefined
+    
+        pieChart.data.datasets[0].data = [depression, anxiety, stress];
+        pieChart.update();
+    
+        // Update the severity text
+        document.getElementById('depressionSeverity').textContent = selectedScore.severity?.depression || 'N/A'; // Default to 'N/A' if undefined
+        document.getElementById('anxietySeverity').textContent = selectedScore.severity?.anxiety || 'N/A'; // Default to 'N/A' if undefined
+        document.getElementById('stressSeverity').textContent = selectedScore.severity?.stress || 'N/A'; // Default to 'N/A' if undefined
+    }
+            </script>
 </body>
 </html>
