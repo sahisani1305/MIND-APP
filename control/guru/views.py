@@ -1,7 +1,7 @@
 import os
 import random
 from datetime import datetime
-from decorators import admin_required
+from .decorators import admin_required
 from bson import ObjectId
 from django.conf import settings
 from django.contrib.auth import authenticate, login as auth_login, logout
