@@ -5,15 +5,15 @@
 </head>
 <body>
     <h2>Admin Dashboard</h2>
+    <a href="{% url 'logout' %}">Logout</a>
     <table>
         <thead>
             <tr>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Mobile Number</th>
-                <th>College ID</th>
-                <th>Year</th>
-                <th>Semester</th>
+                <th>Username</th>
+                <th>Delete</th>
             </tr>
         </thead>
         <tbody>
@@ -22,9 +22,14 @@
                 <td>{{ user.name }}</td>
                 <td>{{ user.email }}</td>
                 <td>{{ user.mobile }}</td>
-                <td>{{ user.college_id }}</td>
-                <td>{{ user.year }}</td>
-                <td>{{ user.semester }}</td>
+                <td>{{ user.username }}</td>
+                <td>
+                    <form method="post" action="">
+                        {% csrf_token %}
+                        <input type="hidden" name="user_id" value="{{ user.id_str }}">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

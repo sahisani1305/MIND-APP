@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello User</title>
+    <title>Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         /* General Styles */
@@ -12,7 +12,7 @@
             font-family: Arial, sans-serif;
             overflow-x: hidden;
         }
-
+    
         /* Background Styles */
         .background {
             position: fixed;
@@ -23,7 +23,7 @@
             background: linear-gradient(45deg, #83a4d4, #b6fbff);
             z-index: -1;
         }
-
+    
         /* Side Panel Styles */
         .side-panel {
             width: 40px;
@@ -37,26 +37,26 @@
             z-index: 1000;
             overflow: hidden;
         }
-
+    
         .side-panel.open {
             width: 250px;
         }
-
+    
         .side-panel .toggle-btn {
             padding: 10px;
             cursor: pointer;
         }
-
+    
         .side-panel .user-info {
             display: none;
             padding: 10px;
             text-align: center;
         }
-
+    
         .side-panel.open .user-info {
             display: block;
         }
-
+    
         .side-panel .user-info img {
             width: 80px;
             height: 80px;
@@ -64,25 +64,25 @@
             margin-bottom: 10px;
             cursor: pointer;
         }
-
+    
         .side-panel .user-info h2,
         .side-panel .user-info p {
             margin: 0;
             padding: 0;
         }
-
+    
         .side-panel .menu {
             padding: 10px;
             border-top: 1px solid white;
             display: none;
         }
-
+    
         .side-panel.open .menu {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-
+    
         .side-panel .menu a {
             display: block;
             color: white;
@@ -90,11 +90,11 @@
             padding: 10px;
             text-align: center;
         }
-
+    
         .side-panel .menu a:hover {
             background-color: #444;
         }
-
+    
         /* Overlay and Blur Effect */
         .content-overlay {
             position: fixed;
@@ -109,127 +109,277 @@
             transition: all 0.3s ease;
             z-index: 999;
         }
-
+    
         .content-overlay.active {
             opacity: 1;
             visibility: visible;
         }
-
+    
         /* Content Styles */
         .content {
             margin-left: 50px;
             padding: 20px;
             transition: all 0.3s ease;
         }
-
-        /* Profile Image Upload Styles */
-        .profile-image-upload {
-            display: none;
+    
+        /* Dashboard Layout */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr; /* Left column for calendar and pie chart, right column for line graph */
+            gap: 15px;
+            padding: 15px;
+            margin-top: 15px;
         }
-
-        .profile-image-label {
-            cursor: pointer;
-            color: #3498db;
-            text-decoration: underline;
-            margin-top: 10px;
-            display: block;
+    
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-
-        .profile-image-label:hover {
-            color: #2980b9;
-        }
-
-        /* Calendar Container Styles */
+    
         .calendar-container,
         .chart-container,
         .line-graph-container {
             background-color: white;
-            padding: 10px;
+            padding: 12px;
             border-radius: 5px;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-            width: 250px;
-            margin: 10px;
-            text-align: center;
-            display: inline-block;
-            vertical-align: top;
+            opacity: 0;
+            transform: translateX(-100%);
+            animation: slideInLeft 0.5s ease-out forwards;
         }
-
+        
+        .line-graph-container {
+            transform: translateY(100%);
+            animation: slideInBottom 0.5s ease-out 0.4s forwards;
+            max-height: 350px; /* Reduced the height */
+        }
+            /* Keyframes for sliding animations */
+            @keyframes slideInLeft {
+                from {
+                    transform: translateX(-20%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        
+            @keyframes slideInBottom {
+                from {
+                    transform: translateY(20%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }        
+    
+        /* Calendar Styles */
         .calendar {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 3px;
+            gap: 2px;
             margin: 10px auto;
         }
-
+    
         .day {
-            width: 25px;
-            height: 25px;
-            line-height: 25px;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
             text-align: center;
             border: 1px solid #ccc;
             border-radius: 50%;
             background-color: #f9f9f9;
-            font-size: 0.8em;
+            font-size: 0.7em;
             position: relative;
         }
-
+    
         .day.active {
             background-color: #3498db;
             color: white;
             z-index: 1;
         }
-
+    
         .day.active::before {
             content: '🔥';
-            font-size: 24px;
+            font-size: 30px;
             position: absolute;
-            top: -10px;
+            top: -2px;
             left: 50%;
             transform: translateX(-50%);
             z-index: -1;
             animation: flame 1s infinite;
         }
-
+    
         @keyframes flame {
             0%, 100% {
                 transform: translateX(-50%) translateY(0) scale(1);
             }
             50% {
-                transform: translateX(-50%) translateY(-5px) scale(1.1);
+                transform: translateX(-50%) translateY(-3px) scale(1.1);
             }
         }
-
-        /* Dashboard Layout */
-        .dashboard-layout {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            padding: 10px;
-        }
-
+    
         /* Navigation Buttons */
         .nav-buttons {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin: 10px 0;
-            width: 100%;
+            margin: 5px 0;
         }
-
+    
         .nav-buttons button {
-            padding: 5px 10px;
+            padding: 3px 8px;
             cursor: pointer;
             background-color: #3498db;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 3px;
+            font-size: 0.8em;
+        }
+    
+        #monthYear {
+            font-size: 0.9em;
+        }
+    
+        /* Chart size controls */
+        #dass21Chart {
+            max-height: 200px;
+            width: 100% !important;
+        }
+    
+        #lineChart {
+            max-height: 300px;
+            width: 100% !important;
+        }
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid #ccc;
+            padding: 0.75rem;
+            border-radius: 8px;
+            max-width: 180px;
+            margin: 1rem auto;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+        
+        .profile-image-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 0.75rem;
+        }
+        
+        .profile-image-container img {
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .profile-image-container .fa-plus {
+            position: absolute;
+            bottom: 8px;
+            right: 5px;
+            background: #2ecc71;
+            border-radius: 50%;
+            padding: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease;
+        }
+        
+        .profile-image-container .fa-plus:hover {
+            transform: scale(1.1);
+        }
+        
+        .profile-image-upload {
+            display: none;
+        }
+        
+        .user-details {
+            width: 100%;
+            text-align: center;
+        }
+        
+        .user-details h2 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+            color: rgba(255, 252, 252, 0.9);
+            font-weight: 500;
+        }
+        .user-details p {
+            margin: 0.25rem 0;
+            font-size: 0.8rem;
+            color: rgba(255, 252, 252, 0.8);
+            font-weight: 400;
+            line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap; 
+            position: relative;
         }
 
-        .nav-buttons button:hover {
-            background-color: #2980b9;
+        .user-details p:hover::after {
+            content: attr(data-full-text);
+            position: absolute;
+            left: 0;
+            top: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 5px;
+            border-radius: 5px;
+            white-space: normal;
+            z-index: 10;
+            width: max-content;
+            max-width: 300px;
+        }
+        @media (max-width: 768px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr; /* Stack everything on smaller screens */
+            }
+        }
+        .assessment-link a {
+            text-decoration: none;
+            color: #3498db; /* Default link color */
+        }
+        
+        .assessment-link a.disabled {
+            color: gray; /* Grey color for disabled state */
+            pointer-events: none; /* Disable click events */
+            cursor: not-allowed; /* Change cursor to indicate disabled state */
+        }
+        
+        .assessment-link .tooltip {
+            visibility: hidden;
+            width: 200px; /* Adjust width as needed */
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            border-radius: 5px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; /* Position above the link */
+            left: 50%;
+            margin-left: -100px; /* Center the tooltip */
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .assessment-link:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
         }
     </style>
-</head>
+    </head>
 <body>
     <div class="background"></div>
     <div class="content-overlay" id="overlay"></div>
@@ -238,57 +388,93 @@
             <i class="fas fa-bars"></i>
         </div>
         <div class="user-info">
-            <img id="profileImage" src="{% if profile_image_url %}{{ profile_image_url }}{% else %}https://img.shields.io/badge/User-Logo-red{% endif %}" alt="User Logo">
-            <label for="profileImageUpload" class="profile-image-label">Change Profile Image</label>
+            <div class="profile-image-container">
+                <img id="profileImage" 
+                src="{% if profile_image_url %}{{ profile_image_url }}{% else %}data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PGNpcmNsZSBjeD0iNTAiIGN5PSIzNiIgcj0iMjQiIGZpbGw9IiNkZGQiLz48cGF0aCBkPSJNMjQsNzQgQzI0LDUzIDc2LDUzIDc2LDc0IEw3NiwxMDAgTDI0LDEwMCBMMjQsNzQgWiIgZmlsbD0iI2RkZCIvPjwvc3ZnPg=={% endif %}" 
+                alt="User Profile">
+                <i class="fas fa-plus" onclick="document.getElementById('profileImageUpload').click();"></i>
+            </div>
             <input type="file" id="profileImageUpload" class="profile-image-upload" accept="image/*">
-            <h2>{{ request.user.get_full_name }}</h2>
-            <p>{{ request.user.username }}</p>
+            
+            <div class="user-details">
+                <h2>{{ user_data.username }}</h2>
+                <p><strong>Email:</strong> {{ user_data.email }}</p>
+                <p><strong>Mobile Number:</strong> {{ user_data.mobile }}</p>
+                <p><strong>Age:</strong> {{ user_data.age }}</p>
+                <p><strong>Occupation:</strong> {{ user_data.occupation }}</p>
+                <p><strong>Gender:</strong> {{ user_data.gender }}</p>
+            </div>
         </div>
         <div class="menu">
             <img src="https://img.shields.io/badge/Paper-Logo-blue" alt="Paper Logo">
-            <a href="{% url 'assessment' %}">Take Assessment</a>
-            <a href="{% url 'logout' %}">Logout</a>
+            <div class="assessment-link" style="position: relative; display: inline-block;">
+                <a href="{% url 'assessment' %}" class="{% if has_taken_assessment_today %}disabled{% endif %}">Take Assessment</a>
+                {% if has_taken_assessment_today %}
+                    <span class="tooltip">Assessment taken today, come back tomorrow</span>
+                {% endif %}
+            </div>
         </div>
     </div>
 
     <div class="content" id="content">
-        <h1>Hello, {{ request.user.get_full_name }}!</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; position: relative;">
+            <h1>Hello, {{ user_data.name }}!</h1>
+            <img id="profileImageTopRight" src="{% if profile_image_url %}{{ profile_image_url }}{% else %}/media/profile_images/avatar-1024x1024.jpeg{% endif %}" alt="User Logo" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer;" onclick="toggleLogoutBox()">
+            <div id="logoutBox" style="display: none; position: fixed; top: 60px; right: 20px; background: white; border: 1px solid #ccc; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); z-index: 1001;">
+            <p>Do you want to logout?</p>
+            <a href="{% url 'logout' %}" style="color: red;">Logout</a>
+            </div>
+        </div>
         {% if not profile_image_url %}
-            <p>Please <a href="" onclick="document.getElementById('profileImageUpload').click()">add a profile photo</a>.</p>
+            <p>Please <a href="" onclick="document.getElementById('profileImageUpload').click(); return false;">add a profile photo</a>.</p>
         {% endif %}
 
         <div class="dashboard-layout">
-            <div class="calendar-container">
-                <h2 style="font-size: 1em;">Streaks</h2>
-                <div class="nav-buttons">
-                    <button onclick="changeMonth(-1)">&#9664;</button>
-                    <div id="monthYear"></div>
-                    <button onclick="changeMonth(1)">&#9654;</button>
+            <div class="left-column">
+                <div class="calendar-container">
+                    <h2 style="font-size: 1em;">Streaks</h2>
+                    <div class="nav-buttons">
+                        <button onclick="changeMonth(-1)">&#9664;</button>
+                        <div id="monthYear"></div>
+                        <button onclick="changeMonth(1)">&#9654;</button>
+                    </div>
+                    <div class="calendar" id="calendar"></div>
                 </div>
-                <div class="calendar" id="calendar"></div>
-            </div>
 
-            {% if scores %}
+                {% if scores %}
                 <div class="chart-container">
                     <h2 style="font-size: 1em;">Latest Assessment Scores</h2>
-                    <canvas id="dass21Chart" width="200" height="200"></canvas>
+                    <canvas id="dass21Chart"></canvas>
                     <p style="font-size: 0.8em;">Depression: {{ severity.depression }}</p>
                     <p style="font-size: 0.8em;">Anxiety: {{ severity.anxiety }}</p>
                     <p style="font-size: 0.8em;">Stress: {{ severity.stress }}</p>
                 </div>
+                {% endif %}
+            </div>
 
-                <div class="line-graph-container">
-                    <h2 style="font-size: 1em;">Cumulative Scores Over Time</h2>
-                    <canvas id="lineChart" width="200" height="200"></canvas>
-                </div>
-            {% else %}
-                <div class="chart-container">
-                    <p style="font-size: 0.8em;">No assessment scores available. Please take the assessment.</p>
-                </div>
+            {% if scores %}
+            <div class="line-graph-container">
+                <h2 style="font-size: 1em;">Cumulative Scores Over Time</h2>
+                <canvas id="lineChart"></canvas>
+            </div>
             {% endif %}
         </div>
     </div>
 
+    <script>
+        function toggleLogoutBox() {
+            const logoutBox = document.getElementById('logoutBox');
+            logoutBox.style.display = logoutBox.style.display === 'none' ? 'block' : 'none';
+        }
+
+        document.addEventListener('click', function(event) {
+            const logoutBox = document.getElementById('logoutBox');
+            const profileImageTopRight = document.getElementById('profileImageTopRight');
+            if (!logoutBox.contains(event.target) && !profileImageTopRight.contains(event.target)) {
+                logoutBox.style.display = 'none';
+            }
+        });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Toggle Side Panel
@@ -300,7 +486,7 @@
         }
 
         // Close panel when clicking overlay
-        document.getElementById('overlay').addEventListener('click', function () {
+        document.getElementById('overlay').addEventListener('click', function() {
             const sidePanel = document.getElementById('sidePanel');
             const overlay = document.getElementById('overlay');
             sidePanel.classList.remove('open');
@@ -308,11 +494,11 @@
         });
 
         // Handle Profile Image Upload
-        document.getElementById('profileImageUpload').addEventListener('change', function (event) {
+        document.getElementById('profileImageUpload').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function (e) {
+                reader.onload = function(e) {
                     document.getElementById('profileImage').src = e.target.result;
                     uploadImage(file);
                 };
@@ -331,14 +517,15 @@
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken')
                 }
-            }).then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        console.log('Image uploaded successfully');
-                    } else {
-                        console.error('Failed to upload image');
-                    }
-                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Image uploaded successfully');
+                } else {
+                    console.error('Failed to upload image');
+                }
+            });
         }
 
         // Get CSRF Token
@@ -442,6 +629,33 @@
                     plugins: {
                         legend: {
                             position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.raw !== null) {
+                                        label += context.raw;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true
+                    },
+                    hover: {
+                        onHover: function(e, elements) {
+                            if (elements.length) {
+                                e.native.target.style.cursor = 'pointer';
+                            } else {
+                                e.native.target.style.cursor = 'default';
+                            }
                         }
                     }
                 }
@@ -453,7 +667,7 @@
                 type: 'line',
                 data: {
                     labels: [
-                        {% for score in cumulative_scores %}
+                        {% for score in daily_scores %}
                             '{{ score.date }}',
                         {% endfor %}
                     ],
@@ -461,33 +675,36 @@
                         {
                             label: 'Depression',
                             data: [
-                                {% for score in cumulative_scores %}
+                                {% for score in daily_scores %}
                                     {{ score.depression }},
                                 {% endfor %}
                             ],
                             borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
                             borderWidth: 2,
                             fill: false
                         },
                         {
                             label: 'Anxiety',
                             data: [
-                                {% for score in cumulative_scores %}
+                                {% for score in daily_scores %}
                                     {{ score.anxiety }},
                                 {% endfor %}
                             ],
                             borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
                             borderWidth: 2,
                             fill: false
                         },
                         {
                             label: 'Stress',
                             data: [
-                                {% for score in cumulative_scores %}
+                                {% for score in daily_scores %}
                                     {{ score.stress }},
                                 {% endfor %}
                             ],
                             borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
                             borderWidth: 2,
                             fill: false
                         }

@@ -120,44 +120,80 @@ def login_view(request):
             return JsonResponse({'status': 'error', 'message': 'Invalid login credentials'}, status=400)
     else:
         return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
-
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.contrib.auth.models import User, Group
 def signup_view(request):
     if request.method == 'POST':
-        name = request.POST['name']
-        email = request.POST['email']
-        mobile = request.POST['mobile']
-        age = request.POST['age']
-        occupation = request.POST['occupation']
-        username = request.POST['username']
-        password = request.POST['password']
-        
+        name = request.POST.get('name', None)
+        email = request.POST.get('email', None)
+        mobile = request.POST.get('mobile', None)
+        age = request.POST.get('age', None)
+        occupation = request.POST.get('occupation', None)
+        username = request.POST.get('username', None)
+        password = request.POST.get('password', None)
+        gender = request.POST.get('gender', None)
+
+        if not all([name, email, mobile, age, occupation, username, password, gender]):
+            return JsonResponse({'status': 'error', 'message': 'All fields are required.'}, status=400)
+
         if User.objects.filter(username=username).exists():
             return JsonResponse({'status': 'error', 'message': 'Username already exists'}, status=400)
-        
+
+        if db.users.find_one({'email': email}):
+            return JsonResponse({'status': 'error', 'message': 'Email already exists'}, status=400)
+
+        if db.users.find_one({'mobile': mobile}):
+            return JsonResponse({'status': 'error', 'message': 'Mobile number already exists'}, status=400)
+
         user = User.objects.create_user(username=username, email=email, password=password)
         user.first_name = name
         user.save()
-        
+
         group, created = Group.objects.get_or_create(name='user')
         user.groups.add(group)
-        
+
         user_data = {
             'name': name,
             'email': email,
             'mobile': mobile,
             'age': age,
             'occupation': occupation,
-            'username': username
+            'username': username,
+            'gender': gender
         }
         db.users.insert_one(user_data)
-        
+
         return JsonResponse({'status': 'success', 'message': 'Signup successful! Please login.'})
     else:
         return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
     
+from django.shortcuts import render, redirect
+
 def admin_view(request):
-    users = db.users.find()
+    users = list(db.users.find())
+    for user in users:
+        user['id_str'] = str(user['_id'])  # Create a new field 'id_str' that holds the string version of '_id'
+
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        if user_id:
+            try:
+                # Delete user from MongoDB
+                db.users.delete_one({'_id': ObjectId(user_id)})
+                
+                # Also delete user from Django admin
+                # Assuming you have a matching user in Django with the same email or username
+                django_user = User.objects.filter(email=user.email).first()
+                if django_user:
+                    django_user.delete()
+            except Exception as e:
+                print(e)
+        return redirect('admin_page')  # Replace 'admin_view' with your actual URL name
+
     return render(request, 'admin.html', {'users': users})
+
+from datetime import datetime
 
 @login_required
 def user_view(request):
@@ -187,39 +223,47 @@ def user_view(request):
                 'anxiety': 0,
                 'stress': 0,
             }
-        scores_by_date[date]['depression'] += assessment['depression']
-        scores_by_date[date]['anxiety'] += assessment['anxiety']
-        scores_by_date[date]['stress'] += assessment['stress']
+        scores_by_date[date]['depression'] = assessment['depression']
+        scores_by_date[date]['anxiety'] = assessment['anxiety']
+        scores_by_date[date]['stress'] = assessment['stress']
 
-    cumulative_scores = []
-    cumulative_depression = 0
-    cumulative_anxiety = 0
-    cumulative_stress = 0
-
+    daily_scores = []
     for date, scores in sorted(scores_by_date.items()):
-        cumulative_depression += scores['depression']
-        cumulative_anxiety += scores['anxiety']
-        cumulative_stress += scores['stress']
-        cumulative_scores.append({
+        daily_scores.append({
             'date': date,
-            'depression': cumulative_depression,
-            'anxiety': cumulative_anxiety,
-            'stress': cumulative_stress,
+            'depression': scores['depression'],
+            'anxiety': scores['anxiety'],
+            'stress': scores['stress'],
         })
 
     latest_assessment = db.assessments.find_one({'username': request.user.username}, sort=[('timestamp', -1)])
     scores = latest_assessment if latest_assessment else None
     severity = latest_assessment['severity'] if latest_assessment else None
+    latest_assessment_date = latest_assessment['timestamp'].strftime('%Y-%m-%d') if latest_assessment else None
+
+    # Check if the latest assessment date is today
+    today_date = datetime.now().strftime('%Y-%m-%d')
+    has_taken_assessment_today = (latest_assessment_date == today_date)
 
     return render(request, 'users.html', {
         'profile_image_url': profile_image_url,
         'login_times': login_times,
         'scores': scores,
         'severity': severity,
-        'cumulative_scores': cumulative_scores,
+        'daily_scores': daily_scores,
+        'latest_assessment_date': latest_assessment_date,
+        'has_taken_assessment_today': has_taken_assessment_today,
+        'user_data': user_data  # Add the user data to the context
     })
 
 def logout_view(request):
+    @login_required
+    def get_user_info(request):
+        user_data = db.users.find_one({'username': request.user.username}, {'_id': 0, 'name': 1, 'username': 1, 'email': 1, 'mobile': 1, 'age': 1, 'occupation': 1, 'gender': 1})
+        if user_data:
+            return JsonResponse({'status': 'success', 'data': user_data})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'User not found'}, status=404)
     logout(request)
     return redirect('index')
 

@@ -269,7 +269,6 @@
         <input type="password" id="formPassword" name="password">
         <button type="submit">Login</button>
     </form>
-
     <!-- Hidden signup form -->
     <form id="signupForm" method="POST" action="{% url 'signup' %}" style="display: none;">
         {% csrf_token %}
@@ -280,6 +279,12 @@
         <input type="text" name="occupation" placeholder="Occupation" required>
         <input type="text" name="username" placeholder="Username" required>
         <input type="password" name="password" placeholder="Password" required>
+        <select name="gender" required>
+            <option value="" disabled selected>Select your gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Prefer_not_to_say">Prefer not to say</option>
+        </select>
         <button type="submit">Signup</button>
     </form>
 
@@ -369,105 +374,111 @@
                     loginMessage.classList.add('fade-in');
                 }, 100);
             }
-        
-            // Function to add signup input fields
-            function addSignupInputs() {
-                const signupMessage = document.createElement('div');
-                signupMessage.classList.add('chat-message', 'bot-message');
-                signupMessage.innerHTML = `
-                    <div class="signup-input-container">
-                        <form id="signupForm" onsubmit="event.preventDefault(); submitSignup();">
-                            <label for="name">Name:</label>
-                            <br>
-                            <input type="text" id="name" name="name" placeholder="Enter your name">
-                            <span class="error-message" id="nameError"></span>
-        
-                            <label for="email">Email:</label>
-                            <br>
-                            <input type="text" id="email" name="email" placeholder="Enter your email">
-                            <span class="error-message" id="emailError"></span>
-        
-                            <label for="mobile">Mobile Number:</label>
-                            <br>
-                            <input type="text" id="mobile" name="mobile" placeholder="Enter your mobile number">
-                            <span class="error-message" id="mobileError"></span>
-        
-                            <label for="age">Age:</label>
-                            <br>
-                            <input type="number" id="age" name="age" placeholder="Enter your age">
-                            <span class="error-message" id="ageError"></span>
-        
-                            <label for="occupation">Occupation:</label>
-                            <br>
-                            <input type="text" id="occupation" name="occupation" placeholder="Enter your occupation">
-                            <span class="error-message" id="occupationError"></span>
-        
-                            <label for="username">Username:</label>
-                            <br>
-                            <input type="text" id="username" name="username" placeholder="Enter your username">
-                            <span class="error-message" id="usernameError"></span>
-        
-                            <label for="password">Password:</label>
-                            <br>
-                            <input type="password" id="password" name="password" placeholder="Enter your password">
-                            <span class="error-message" id="passwordError"></span>
-        
-                            <button type="submit">Signup</button>
-                        </form>
-                    </div>
-                `;
-                chatBox.appendChild(signupMessage);
-                setTimeout(() => {
-                    signupMessage.classList.add('fade-in');
-                }, 100);
-            }
-        });
-        
-        // Function to submit the login form
-        async function submitLogin() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-        
-            // Clear previous error messages
-            clearLoginErrorMessages();
-        
-            try {
-                const response = await fetch('/login/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    },
-                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
-                });
-        
-                const data = await response.json();
-        
-                if (data.status === 'success') {
-                    // Redirect to the appropriate page
-                    window.location.href = data.redirect;
+        // Function to add signup input fields
+        function addSignupInputs() {
+            const signupMessage = document.createElement('div');
+            signupMessage.classList.add('chat-message', 'bot-message');
+            signupMessage.innerHTML = `
+                <div class="signup-input-container">
+                    <form id="signupForm" onsubmit="event.preventDefault(); submitSignup();">
+                        <label for="name">Name:</label>
+                        <br>
+                        <input type="text" id="name" name="name" placeholder="Enter your name">
+                        <span class="error-message" id="nameError"></span>
+    
+                        <label for="email">Email:</label>
+                        <br>
+                        <input type="text" id="email" name="email" placeholder="Enter your email">
+                        <span class="error-message" id="emailError"></span>
+    
+                        <label for="mobile">Mobile Number:</label>
+                        <br>
+                        <input type="text" id="mobile" name="mobile" placeholder="Enter your mobile number">
+                        <span class="error-message" id="mobileError"></span>
+    
+                        <label for="age">Age:</label>
+                        <br>
+                        <input type="number" id="age" name="age" placeholder="Enter your age">
+                        <span class="error-message" id="ageError"></span>
+    
+                        <label for="occupation">Occupation:</label>
+                        <br>
+                        <input type="text" id="occupation" name="occupation" placeholder="Enter your occupation">
+                        <span class="error-message" id="occupationError"></span>
+    
+                        <label for="username">Username:</label>
+                        <br>
+                        <input type="text" id="username" name="username" placeholder="Enter your username">
+                        <span class="error-message" id="usernameError"></span>
+    
+                        <label for="password">Password:</label>
+                        <br>
+                        <input type="password" id="password" name="password" placeholder="Enter your password">
+                        <span class="error-message" id="passwordError"></span>
+
+                        <label for="gender">Gender:</label>
+                        <br>
+                        <select id="gender" name="gender" required>
+                            <option value="" disabled selected>Select your gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Prefer_not_to_say">Prefer not to say</option>
+                        </select>
+    
+                        <button type="submit">Signup</button>
+                    </form>
+                </div>
+            `;
+            chatBox.appendChild(signupMessage);
+            setTimeout(() => {
+                signupMessage.classList.add('fade-in');
+            }, 100);
+        }
+    });
+    
+    // Function to submit the login form
+    async function submitLogin() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+    
+        // Clear previous error messages
+        clearLoginErrorMessages();
+    
+        try {
+            const response = await fetch('/login/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+            });
+    
+            const data = await response.json();
+    
+            if (data.status === 'success') {
+                // Redirect to the appropriate page
+                window.location.href = data.redirect;
+            } else {
+                // Display error messages below the input fields
+                if (data.message === 'Username not found') {
+                    document.getElementById('usernameError').textContent = 'Username not found.';
+                } else if (data.message === 'Incorrect password') {
+                    document.getElementById('passwordError').textContent = 'Incorrect password.';
                 } else {
-                    // Display error messages below the input fields
-                    if (data.message === 'Username not found') {
-                        document.getElementById('usernameError').textContent = 'Username not found.';
-                    } else if (data.message === 'Incorrect password') {
-                        document.getElementById('passwordError').textContent = 'Incorrect password.';
-                    } else {
-                        document.getElementById('usernameError').textContent = data.message;
-                    }
+                    document.getElementById('usernameError').textContent = data.message;
                 }
-            } catch (error) {
-                console.error('Error during login:', error);
-                document.getElementById('usernameError').textContent = 'An error occurred. Please try again.';
             }
+        } catch (error) {
+            console.error('Error during login:', error);
+            document.getElementById('usernameError').textContent = 'An error occurred. Please try again.';
         }
-        
-        // Function to clear login error messages
-        function clearLoginErrorMessages() {
-            document.getElementById('usernameError').textContent = '';
-            document.getElementById('passwordError').textContent = '';
-        }
-        
+    }
+    // Function to clear login error messages
+    function clearLoginErrorMessages() {
+        document.getElementById('usernameError').textContent = '';
+        document.getElementById('passwordError').textContent = '';
+    }
         // Function to submit the signup form
         async function submitSignup() {
             const name = document.getElementById('name').value;
@@ -477,18 +488,19 @@
             const occupation = document.getElementById('occupation').value;
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-        
+            const gender = document.getElementById('gender').value;
+    
             // Clear previous error messages
             clearErrorMessages();
-        
+    
             let isValid = true;
-        
+    
             // Validation for name starting with a capital letter
             if (!/^[A-Z]/.test(name)) {
                 document.getElementById('nameError').textContent = 'Name must start with a capital letter.';
                 isValid = false;
             }
-
+    
             // Validation for occupation starting with a capital letter
             if (!/^[A-Z]/.test(occupation)) {
                 document.getElementById('occupationError').textContent = 'Occupation must start with a capital letter.';
@@ -499,25 +511,25 @@
                 document.getElementById('mobileError').textContent = 'Mobile number must be exactly 10 digits.';
                 isValid = false;
             }
-        
+    
             // Validation for email ending with @gmail.com
             if (!/@gmail\.com$/.test(email)) {
                 document.getElementById('emailError').textContent = 'Email must end with @gmail.com.';
                 isValid = false;
             }
-        
+    
             // Validation for username containing at least one uppercase letter, one number, and one special character
             if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{6,}$/.test(username)) {
                 document.getElementById('usernameError').textContent = 'Username must contain at least one uppercase letter, one number, and one special character.';
                 isValid = false;
             }
-        
+    
             // Validation for username and password not being the same
             if (username === password) {
                 document.getElementById('passwordError').textContent = 'Username and password cannot be the same.';
                 isValid = false;
             }
-        
+    
             // If all validations pass, submit the form
             if (isValid) {
                 try {
@@ -527,13 +539,14 @@
                             'Content-Type': 'application/x-www-form-urlencoded',
                             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
                         },
-                        body: `name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&mobile=${encodeURIComponent(mobile)}&age=${encodeURIComponent(age)}&occupation=${encodeURIComponent(occupation)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+                        body: `name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&mobile=${encodeURIComponent(mobile)}&age=${encodeURIComponent(age)}&occupation=${encodeURIComponent(occupation)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&gender=${encodeURIComponent(gender)}`,
                     });
-        
+    
                     const data = await response.json();
-        
+    
                     if (data.status === 'success') {
-                        showPopup(data.message); // Show success popup
+                        showPopup(data.message + ' Click login to continue.'); // Show success popup
+                        clearSignupFields(); // Clear all fields
                     } else {
                         showPopup(data.message); // Show error popup
                     }
@@ -543,7 +556,7 @@
                 }
             }
         }
-        
+    
         // Function to clear all error messages
         function clearErrorMessages() {
             const errorMessages = document.querySelectorAll('.error-message');
@@ -551,20 +564,32 @@
                 message.textContent = '';
             });
         }
-        
+    
+        // Function to clear all signup fields
+        function clearSignupFields() {
+            document.getElementById('name').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('mobile').value = '';
+            document.getElementById('age').value = '';
+            document.getElementById('occupation').value = '';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('gender').value = '';
+        }
+    
         // Function to show the popup message
         function showPopup(message) {
             const popup = document.getElementById('popupMessage');
             const popupText = document.getElementById('popupText');
-            
+    
             popupText.textContent = message;
             popup.style.display = 'flex';
-            
+    
             // Close the popup when the close button is clicked
             document.getElementById('closePopup').addEventListener('click', function() {
                 popup.style.display = 'none';
             });
-            
+    
             // Close the popup when clicking outside the popup content
             popup.addEventListener('click', function(event) {
                 if (event.target === popup) {
@@ -572,6 +597,6 @@
                 }
             });
         }
-    </script>
+    </script>    
 </body>
 </html>
