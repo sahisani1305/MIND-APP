@@ -11,8 +11,11 @@
             margin: 0;
             font-family: Arial, sans-serif;
             overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-    
+        
         /* Background Styles */
         .background {
             position: fixed;
@@ -23,7 +26,7 @@
             background: linear-gradient(45deg, #83a4d4, #b6fbff);
             z-index: -1;
         }
-    
+        
         /* Side Panel Styles */
         .side-panel {
             width: 40px;
@@ -37,26 +40,29 @@
             z-index: 1000;
             overflow: hidden;
         }
-    
+        
         .side-panel.open {
             width: 250px;
         }
-    
+        
         .side-panel .toggle-btn {
             padding: 10px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-    
+        
         .side-panel .user-info {
             display: none;
             padding: 10px;
             text-align: center;
         }
-    
+        
         .side-panel.open .user-info {
             display: block;
         }
-    
+        
         .side-panel .user-info img {
             width: 80px;
             height: 80px;
@@ -64,25 +70,25 @@
             margin-bottom: 10px;
             cursor: pointer;
         }
-    
+        
         .side-panel .user-info h2,
         .side-panel .user-info p {
             margin: 0;
             padding: 0;
         }
-    
+        
         .side-panel .menu {
             padding: 10px;
             border-top: 1px solid white;
             display: none;
         }
-    
+        
         .side-panel.open .menu {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-    
+        
         .side-panel .menu a {
             display: block;
             color: white;
@@ -90,11 +96,11 @@
             padding: 10px;
             text-align: center;
         }
-    
+        
         .side-panel .menu a:hover {
             background-color: #444;
         }
-    
+        
         /* Overlay and Blur Effect */
         .content-overlay {
             position: fixed;
@@ -109,74 +115,237 @@
             transition: all 0.3s ease;
             z-index: 999;
         }
-    
+        
         .content-overlay.active {
             opacity: 1;
             visibility: visible;
         }
-    
+        
         /* Content Styles */
         .content {
             margin-left: 50px;
             padding: 20px;
             transition: all 0.3s ease;
+            flex: 1;
         }
-    
-        /* Dashboard Layout */
+        
+        /* Dashboard Grid Layout */
         .dashboard-layout {
             display: grid;
-            grid-template-columns: 250px 1fr; /* Left column for calendar and pie chart, right column for line graph */
-            gap: 15px;
-            padding: 15px;
-            margin-top: 15px;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+            padding: 20px;
+            height: 60vh;
+            box-sizing: border-box;
         }
-    
+        
+        /* Left Column containing Calendar and Chart */
         .left-column {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 20px;
+            height: calc(60vh - 40px);
         }
-    
-        .calendar-container,
-        .chart-container,
+        
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: calc(60vh - 40px);
+        }
+        
+        /* Individual Containers */
+        .calendar-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 200px;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 370px;
+        }
+        
         .line-graph-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 270px;
+        }
+        
+        .recommendations-container {
+            grid-column: 2;
+            grid-row: 3;
             background-color: white;
             padding: 12px;
             border-radius: 5px;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
             opacity: 0;
-            transform: translateX(-100%);
-            animation: slideInLeft 0.5s ease-out forwards;
-        }
-        
-        .line-graph-container {
             transform: translateY(100%);
             animation: slideInBottom 0.5s ease-out 0.4s forwards;
-            max-height: 350px; /* Reduced the height */
+            overflow-y: auto;
+            min-height: 300px; /* Minimum height */
         }
-            /* Keyframes for sliding animations */
-            @keyframes slideInLeft {
-                from {
-                    transform: translateX(-20%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
+        
+        /* Responsive Layout */
+        @media (min-width: 481px) and (max-width: 1024px) {
+            .dashboard-layout {
+                grid-template-columns: 240px 1fr;
+                grid-template-rows: repeat(2,auto);
+                height: auto;
+            }
+            .chart-container{
+                height: auto;
+                width: auto;
+            }
+            .line-graph-container{
+                height: auto;
+                width: auto;
+            }
+            .recommendations-container {
+                height: auto;
+                margin-bottom: 20px;
+            }
+            .calendar-container{
+                width: auto;
+                height: auto;
+            }
+            .left-column {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+                height: auto;
+            }
+            
+            .right-column {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+                height: auto;
             }
         
-            @keyframes slideInBottom {
-                from {
-                    transform: translateY(20%);
-                    opacity: 0;
+            .content {
+                margin-left: auto;
+                margin-right: 0;
+                padding: 10px;
+                width: 90%;
+            }
+            .recommendations-container #recommendationContent {
+                height: auto;
+                max-height: 300px;
+                overflow-y: auto;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(2, 665px);
+                padding: 10px;
+            }
+        
+            .recommendations-container {
+                width: auto;
+                height: auto;
+                overflow-y: auto;
+            }
+            .chart-container{
+                height: auto;
+                width: auto;
+            }
+            .line-graph-container{
+                height: auto;
+                width: auto;
+            }
+            #lineChart {
+                height: auto;
+                width: 100% !important;
+            }
+        
+            .recommendations-container {
+                height: auto;
+            }
+        
+            .calendar-container {
+                height: auto;
+                width: 80%;
+                margin: 0 auto;
+            }
+            .calendar {
+                display: grid;
+                grid-template-columns: repeat(7, 1fr);
+                gap: 2px;
+                margin: 10px auto;
+            }
+            
+            .day {
+                width: 20px;
+                height: 20px;
+                line-height: 20px;
+                text-align: center;
+                border: 1px solid #ccc;
+                border-radius: 50%;
+                background-color: #f9f9f9;
+                font-size: 0.7em;
+                position: relative;
+            }
+            
+            .day.active {
+                background-color: #3498db;
+                color: white;
+                z-index: 1;
+            }
+            
+            .day.active::before {
+                content: '🔥';
+                font-size: 30px;
+                position: absolute;
+                top: -2px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: -1;
+                animation: flame 1s infinite;
+            }
+            
+            @keyframes flame {
+                0%, 100% {
+                    transform: translateX(-50%) translateY(0) scale(1);
                 }
-                to {
-                    transform: translateY(0);
-                    opacity: 1;
+                50% {
+                    transform: translateX(-50%) translateY(-3px) scale(1.1);
                 }
-            }        
-    
+            }
+        }
+        
+        /* Keyframes for sliding animations */
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-20%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideInBottom {
+            from {
+                transform: translateY(20%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
         /* Calendar Styles */
         .calendar {
             display: grid;
@@ -184,7 +353,7 @@
             gap: 2px;
             margin: 10px auto;
         }
-    
+        
         .day {
             width: 20px;
             height: 20px;
@@ -196,13 +365,13 @@
             font-size: 0.7em;
             position: relative;
         }
-    
+        
         .day.active {
             background-color: #3498db;
             color: white;
             z-index: 1;
         }
-    
+        
         .day.active::before {
             content: '🔥';
             font-size: 30px;
@@ -213,7 +382,7 @@
             z-index: -1;
             animation: flame 1s infinite;
         }
-    
+        
         @keyframes flame {
             0%, 100% {
                 transform: translateX(-50%) translateY(0) scale(1);
@@ -222,7 +391,7 @@
                 transform: translateX(-50%) translateY(-3px) scale(1.1);
             }
         }
-    
+        
         /* Navigation Buttons */
         .nav-buttons {
             display: flex;
@@ -230,7 +399,7 @@
             align-items: center;
             margin: 5px 0;
         }
-    
+        
         .nav-buttons button {
             padding: 3px 8px;
             cursor: pointer;
@@ -240,21 +409,23 @@
             border-radius: 3px;
             font-size: 0.8em;
         }
-    
+        
         #monthYear {
             font-size: 0.9em;
         }
-    
+        
         /* Chart size controls */
         #dass21Chart {
             max-height: 200px;
             width: 100% !important;
         }
-    
+        
         #lineChart {
-            max-height: 300px;
+            max-height: 235px;
             width: 100% !important;
         }
+        
+        /* User Info Styles */
         .user-info {
             display: flex;
             flex-direction: column;
@@ -315,6 +486,7 @@
             color: rgba(255, 252, 252, 0.9);
             font-weight: 500;
         }
+        
         .user-details p {
             margin: 0.25rem 0;
             font-size: 0.8rem;
@@ -322,25 +494,22 @@
             font-weight: 400;
             line-height: 1.4;
         }
-        @media (max-width: 768px) {
-            .dashboard-layout {
-                grid-template-columns: 1fr; /* Stack everything on smaller screens */
-            }
-        }
+        
+        /* Assessment Link Styles */
         .assessment-link a {
             text-decoration: none;
-            color: #3498db; /* Default link color */
+            color: #3498db;
         }
         
         .assessment-link a.disabled {
-            color: gray; /* Grey color for disabled state */
-            pointer-events: none; /* Disable click events */
-            cursor: not-allowed; /* Change cursor to indicate disabled state */
+            color: gray;
+            pointer-events: none;
+            cursor: not-allowed;
         }
         
         .assessment-link .tooltip {
             visibility: hidden;
-            width: 200px; /* Adjust width as needed */
+            width: 200px;
             background-color: black;
             color: #fff;
             text-align: center;
@@ -348,9 +517,9 @@
             padding: 5px;
             position: absolute;
             z-index: 1;
-            bottom: 125%; /* Position above the link */
+            bottom: 125%;
             left: 50%;
-            margin-left: -100px; /* Center the tooltip */
+            margin-left: -100px;
             opacity: 0;
             transition: opacity 0.3s;
         }
@@ -359,6 +528,8 @@
             visibility: visible;
             opacity: 1;
         }
+        
+        /* Dropdown and Refresh Styles */
         #assessmentDateDropdown {
             margin-bottom: 10px;
             padding: 5px;
@@ -370,8 +541,37 @@
             margin-left: auto;
             margin-right: auto;
         }
+        
+        .refresh-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+        
+        .refresh-icon {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .dropdown-refresh-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        #recommendationDropdown {
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: white;
+            font-size: 0.9em;
+            width: 100%;
+            max-width: 200px;
+        }
     </style>
-    </head>
+</head>
 <body>
     <div class="background"></div>
     <div class="content-overlay" id="overlay"></div>
@@ -400,13 +600,13 @@
         </div>
         <div class="menu">
             <div class="assessment-link" style="position: relative; display: inline-block;">
-            <a href="{% url 'assessment' %}" class="{% if has_taken_assessment_today %}disabled{% endif %}" style="display: flex; align-items: center;">
-                <img src="/media/profile_images/ext_file_generic-512.webp" alt="Paper Logo" style="margin-right: 5px; width: 32px; height: 32px;">
-                Take Assessment
-            </a>
-            {% if has_taken_assessment_today %}
-                <span class="tooltip">Assessment taken today, come back tomorrow</span>
-            {% endif %}
+                <a href="{% url 'assessment' %}" class="{% if has_taken_assessment_today %}disabled{% endif %}" style="display: flex; align-items: center;">
+                    <img src="/media/profile_images/ext_file_generic-512.webp" alt="Paper Logo" style="margin-right: 5px; width: 32px; height: 32px;">
+                    Take Assessment
+                </a>
+                {% if has_taken_assessment_today %}
+                    <span class="tooltip">Assessment taken today, come back tomorrow</span>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -416,8 +616,8 @@
             <h1>Hello, {{ user_data.name }}!</h1>
             <img id="profileImageTopRight" src="{% if profile_image_url %}{{ profile_image_url }}{% else %}/media/profile_images/avatar-1024x1024.jpeg{% endif %}" alt="User Logo" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer;" onclick="toggleLogoutBox()">
             <div id="logoutBox" style="display: none; position: fixed; top: 60px; right: 20px; background: white; border: 1px solid #ccc; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); z-index: 1001;">
-            <p>Do you want to logout?</p>
-            <a href="{% url 'logout' %}" style="color: red;">Logout</a>
+                <p>Do you want to logout?</p>
+                <a href="{% url 'logout' %}" style="color: red;">Logout</a>
             </div>
         </div>
         {% if not profile_image_url %}
@@ -439,7 +639,6 @@
                 {% if scores %}
                 <div class="chart-container">
                     <h2 style="font-size: 1em;">Assessment Scores</h2>
-                    <!-- Dropdown to select assessment date -->
                     <select id="assessmentDateDropdown" onchange="updatePieChart()">
                         <option value="latest">Latest Assessment</option>
                         {% for score in all_scores %}
@@ -458,16 +657,111 @@
                 </div>
                 {% endif %}
             </div>
-
+            <div class="right-column">
             {% if scores %}
             <div class="line-graph-container">
                 <h2 style="font-size: 1em;">Cumulative Scores Over Time</h2>
                 <canvas id="lineChart"></canvas>
             </div>
             {% endif %}
+
+            <div class="recommendations-container">
+                <h2>Personalized Recommendations</h2>
+                <!-- Dropdown to select previous recommendations -->
+                <div class="dropdown-refresh-container">
+                    <select id="recommendationDropdown" onchange="updateRecommendation()">
+                        <option value="latest">Latest Recommendation</option>
+                        {% for recommendation in all_recommendations %}
+                            <option value="{{ recommendation.recommendations }}">
+                                {{ recommendation.timestamp|date:"Y-m-d H:i" }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    
+                    <!-- Form to generate new recommendations with refresh icon -->
+                    <form method="POST" action="{% url 'user_view' %}">
+                        {% csrf_token %}
+                        <button type="submit" name="generate_recommendations" class="refresh-button" {% if has_recommended_today %}disabled{% endif %}>
+                            <img src="/media/profile_images/refresh.png" class="refresh-icon" alt="Refresh">
+                        </button>
+                    </form>
+                    {% if has_recommended_today %}
+                        <p class="tooltip">You have already generated recommendations today. Please check back tomorrow.</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Display the selected recommendation -->
+                <div id="recommendationContent">
+                    {% if recommendations %}
+                        <p>{{ recommendations|linebreaksbr }}</p>
+                    {% else %}
+                        <p>No recommendations available. Please generate new recommendations.</p>
+                    {% endif %}
+                </div>
+            
+                {% if not recommendations %}
+                    <p class="text-danger">Failed to generate new recommendations. Please try again later.</p>
+                {% endif %}
+            </div>
+            </div>            
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>function applyFormatting(content) {
+    // Apply bold tags
+    content = content.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+
+    // Apply small bold tags
+    content = content.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+
+    // Apply horizontal line
+    content = content.replace(/---/g, '<hr>');
+
+    // Apply heading tags
+    content = content.replace(/### (.*?)(\n|$)/g, '<div class="heading">$1</div>');
+
+    // Apply bullet points
+    content = content.replace(/(?:^|\n)- (.*?)(\n|$)/g, '<ul><li>$1</li></ul>');
+
+    // Merge consecutive <ul> tags
+    content = content.replace(/<\/ul>\n<ul>/g, '');
+
+    // Replace new lines with <br> tags
+    content = content.replace(/\n/g, '<br>');
+
+    return content;
+}
+
+    
+    document.addEventListener("DOMContentLoaded", function () {
+        let recommendationContent = document.getElementById("recommendationContent");
+    
+        if (recommendationContent) {
+            let contentHtml = recommendationContent.innerHTML;
+            recommendationContent.innerHTML = applyFormatting(contentHtml);
+        }
+    });
+    
+    // Function to update the displayed recommendation based on the dropdown selection
+    function updateRecommendation() {
+        const dropdown = document.getElementById('recommendationDropdown');
+        const selectedRecommendation = dropdown.value;
+        const recommendationContent = document.getElementById('recommendationContent');
+    
+        let formattedContent = '';
+    
+        if (selectedRecommendation === 'latest') {
+            // Display the latest recommendation
+            formattedContent = `{{ recommendations|default:"No recommendations available." }}`;
+        } else {
+            // Display the selected recommendation
+            formattedContent = selectedRecommendation;
+        }
+    
+        // Apply formatting to the new content
+        recommendationContent.innerHTML = applyFormatting(formattedContent);
+    }
+    </script>
     <script>
         function toggleLogoutBox() {
         const logoutBox = document.getElementById('logoutBox');

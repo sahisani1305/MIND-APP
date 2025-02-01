@@ -14,4 +14,5 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),  # Add this line
     path('upload_profile_image/', views.upload_profile_image, name='upload_profile_image'),
     path('assessment/', views.assessment, name='assessment'),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

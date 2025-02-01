@@ -30,47 +30,46 @@ def fetch_questions_from_db():
             print(f"Skipping document due to missing fields: {category}")
     return questions_db
 
-def select_random_questions(username, questions_db, num_questions_per_category=7):
-    # Access the user_questions collection
-    user_record = db.user_questions.find_one({"username": username})
-    
-    if user_record:
-        previously_asked_questions = user_record.get("questions", {})
-    else:
-        previously_asked_questions = {}
+import random
 
+import random
+
+def select_random_questions(username, questions_db, session_questions, num_questions_per_category=7):
     selected_questions = {}
+    
     for category, questions in questions_db.items():
-        # Filter out previously asked questions for this user
-        available_questions = [q for q in questions if q not in previously_asked_questions.get(category, [])]
+        # Filter out previously asked questions for this session
+        available_questions = [q for q in questions if q not in session_questions]
 
         if len(available_questions) >= num_questions_per_category:
+            # If enough new questions are available, select randomly
             selected_questions[category] = random.sample(available_questions, num_questions_per_category)
         else:
-            print(f"Not enough questions in category '{category}' to select {num_questions_per_category} questions.")
-            selected_questions[category] = available_questions
-
-        previously_asked_questions[category] = previously_asked_questions.get(category, []) + selected_questions[category]
+            # If not enough new questions, reuse previously asked questions
+            print(f"Not enough new questions in category '{category}'. Reusing previously asked questions.")
+            selected_questions[category] = random.sample(questions, min(num_questions_per_category, len(questions)))
+        
+        # Update the session questions
+        session_questions.update(selected_questions[category])
     
-    # Update the user_questions collection
-    db.user_questions.update_one(
-        {"username": username},
-        {"$set": {"questions": previously_asked_questions}},
-        upsert=True
-    )
-
     return selected_questions
 
 @login_required
 def assessment(request):
     today = timezone.now().strftime('%Y-%m-%d')
+    username = request.user.username
+
+    # Check if an assessment already exists for the user today
     existing_assessment = db.assessments.find_one({
-        'username': request.user.username,
+        'username': username,
         'timestamp': {'$gte': timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)}
     })
 
     if existing_assessment:
-        return render(request, 'assessment.html', {'message': 'You have already taken the assessment today. Please come back tomorrow for a retest.'})
+        # If the assessment exists, reuse the same questions and pre-fill the selected options
+        questions = existing_assessment.get('questions', [])
+        selected_options = existing_assessment.get('selected_options', {})
+        return render(request, 'assessment.html', {'questions': questions, 'selected_options': selected_options})
 
     if request.method == 'POST':
         scores = {'depression': 0, 'anxiety': 0, 'stress': 0}
@@ -80,10 +79,18 @@ def assessment(request):
             'stress': [1, 6, 8, 11, 12, 14, 18]
         }
 
-        for category, questions in question_categories.items():
-            for q_num in questions:
-                question_key = f'q{q_num}'
-                scores[category] += int(request.POST.get(question_key, 0))
+        selected_options = {}  # Store the user's selected options in order
+        questions = request.session.get('assessment_questions', [])
+
+        for index, question in enumerate(questions):
+            question_key = f'q{index + 1}'  # Use the question index as the key
+            selected_option = request.POST.get(question_key, 0)
+            selected_options[question_key] = selected_option  # Save the selected option
+
+            # Calculate scores based on the question categories
+            for category, q_list in question_categories.items():
+                if (index + 1) in q_list:
+                    scores[category] += int(selected_option)
 
         scores = {k: v * 2 for k, v in scores.items()}
 
@@ -128,26 +135,33 @@ def assessment(request):
             'stress': get_severity(scores['stress'], 'stress'),
         }
 
+        # Store the assessment along with the questions and selected options
         db.assessments.insert_one({
-            'username': request.user.username,
+            'username': username,
             'depression': scores['depression'],
             'anxiety': scores['anxiety'],
             'stress': scores['stress'],
             'severity': severity,
-            'timestamp': timezone.now()
+            'timestamp': timezone.now(),
+            'questions': request.session.get('assessment_questions', []),  # Store the questions
+            'selected_options': selected_options  # Store the selected options in order
         })
 
         return redirect('user_view')
 
+    # Fetch questions from the database and select random questions
     questions_db = fetch_questions_from_db()
-    random_questions = select_random_questions(request.user.username, questions_db, 7)
+    random_questions = select_random_questions(username, questions_db, 7)
     
     questions = []
     for category, q_list in random_questions.items():
         for q in q_list:
             questions.append({"text": q})
 
-    return render(request, 'assessment.html', {'questions': questions})
+    # Store the selected questions in the session
+    request.session['assessment_questions'] = questions
+
+    return render(request, 'assessment.html', {'questions': questions, 'selected_options': {}})
 
 def login_view(request):
     if request.method == 'POST':
@@ -239,11 +253,76 @@ def admin_view(request):
 
     return render(request, 'admin.html', {'users': users})
 
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from pymongo import MongoClient
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+from openai import OpenAI  # Import the OpenAI library
+from datetime import datetime  # Import datetime for date handling
+
+# Connect to MongoDB
+client = MongoClient("mongodb://localhost:27017/")
+db = client.mindmate_db
+
+# Option mapping
+option_mapping = {
+    0: "Did not apply to me at all",
+    1: "Applied to me to some degree, or some of the time",
+    2: "Applied to me to a considerable degree, or a good part of the time",
+    3: "Applied to me very much, or most of the time"
+}
+
+# Keywords for relevance check
+relevant_keywords = [
+    "depression", "anxiety", "stress", "mental health", "therapy", "meditation",
+    "mindfulness", "counseling", "wellness", "self-care", "emotional", "psychology"
+]
+
+def is_followup_relevant(followup_text):
+    """
+    Check if the follow-up question is relevant to mental health.
+    """
+    vectorizer = TfidfVectorizer()
+    keyword_matrix = vectorizer.fit_transform(relevant_keywords)
+    followup_matrix = vectorizer.transform([followup_text])
+    similarity = cosine_similarity(keyword_matrix, followup_matrix)
+    return np.max(similarity) > 0.2  # Threshold for relevance
+
+def generate_text_with_openrouter(prompt):
+    """
+    Generate text using the DeepSeek model via OpenRouter API.
+    """
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="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",  # Replace with your OpenRouter API key
+    )
+    try:
+        completion = client.chat.completions.create(
+            model="deepseek/deepseek-r1:free",  # Use the correct DeepSeek model
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=2000  # Adjust as needed
+        )
+        # Check if the completion object is valid and has the expected structure
+        if completion and hasattr(completion, 'choices') and len(completion.choices) > 0:
+            return completion.choices[0].message.content
+        else:
+            print("Error: Invalid or empty response from OpenRouter API.")
+            return None
+    except Exception as e:
+        print(f"Error generating text with OpenRouter: {e}")
+        return None
+
 @login_required
 def user_view(request):
+    # Fetch user data
     user_data = db.users.find_one({'username': request.user.username})
     profile_image_url = user_data.get('profile_image_url', None) if user_data else None
 
+    # Fetch login times
     user_logins = db.logins.find_one({'username': request.user.username})
     if user_logins:
         unique_dates = set()
@@ -257,6 +336,7 @@ def user_view(request):
     else:
         login_times = []
 
+    # Fetch assessment data
     assessments = db.assessments.find({'username': request.user.username}).sort('timestamp', 1)
     scores_by_date = {}
     all_scores = []
@@ -286,14 +366,79 @@ def user_view(request):
             'stress': scores['stress'],
         })
 
+    # Fetch the latest assessment
     latest_assessment = db.assessments.find_one({'username': request.user.username}, sort=[('timestamp', -1)])
     scores = latest_assessment if latest_assessment else None
     severity = latest_assessment['severity'] if latest_assessment else None
     latest_assessment_date = latest_assessment['timestamp'].strftime('%Y-%m-%d') if latest_assessment else None
 
+    # Check if the user has taken an assessment today
     today_date = datetime.now().strftime('%Y-%m-%d')
     has_taken_assessment_today = (latest_assessment_date == today_date)
 
+    # Fetch all recommendations from the recommendations collection
+    all_recommendations = list(db.recommendations.find(
+        {'username': request.user.username},
+        sort=[('timestamp', -1)]  # Sort by timestamp in descending order
+    ))
+
+    # Get the latest recommendation
+    latest_recommendation = all_recommendations[0]['recommendations'] if all_recommendations else None
+
+    # Check if the user has already generated a recommendation today
+    has_recommended_today = False
+    if all_recommendations:
+        latest_recommendation_date = all_recommendations[0]['timestamp'].strftime('%Y-%m-%d')
+        has_recommended_today = (latest_recommendation_date == today_date)
+
+    # Handle button click to generate new recommendations
+    if request.method == 'POST' and 'generate_recommendations' in request.POST:
+        if latest_assessment and not has_recommended_today:  # Only generate if no recommendation exists for today
+            # Map selected options to text
+            selected_options_text = {
+                q: option_mapping.get(int(option), "Unknown") for q, option in latest_assessment['selected_options'].items()
+            }
+
+            # Create a prompt for the NLP model
+            prompt = (
+                f"A {user_data.get('age', 'unknown')}-year-old {user_data.get('gender', 'unknown')} "
+                f"{user_data.get('occupation', 'unknown')} with the following mental health assessment:\n"
+                f"Depression: {severity.get('depression', 'Not specified')}\n"
+                f"Anxiety: {severity.get('anxiety', 'Not specified')}\n"
+                f"Stress: {severity.get('stress', 'Not specified')}\n"
+                f"Selected options:\n"
+            )
+            for q, option_text in selected_options_text.items():
+                prompt += f"- {q}: {option_text}\n"
+            prompt += (
+                "Based upon the questions and the options chosen for the questions, please provide some tips on how to maintain, prevent, and cure mental illness like depression, anxiety and stress.\n"
+                "Also, use the severity for depression, anxiety, and stress to provide the precautions and prevention tips.\n"
+                "Use resources like age, gender, and occupation to be more specific while giving tips.\n"
+                "Give the advices in points, i would like to get 5 points for depression, 5 for anxiety and 5 for stress.\n"
+                "these points should cover the cure if needed, maintainance and preventive measures.\n"
+            )
+
+            # Generate recommendations using the OpenRouter API
+            recommendations = generate_text_with_openrouter(prompt)
+
+            # Store the new recommendations in the recommendations collection
+            if recommendations:
+                db.recommendations.insert_one({
+                    'username': request.user.username,
+                    'recommendations': recommendations,
+                    'timestamp': datetime.now()  # Store the timestamp of the recommendation
+                })
+                # Update the all_recommendations list with the new recommendation
+                all_recommendations.insert(0, {
+                    'recommendations': recommendations,
+                    'timestamp': datetime.now()
+                })
+                latest_recommendation = recommendations
+                has_recommended_today = True  # Update the flag since a new recommendation was generated
+            else:
+                print("Failed to generate recommendations. Keeping the existing ones.")
+
+    # Render the user dashboard with recommendations
     return render(request, 'users.html', {
         'profile_image_url': profile_image_url,
         'login_times': login_times,
@@ -303,7 +448,10 @@ def user_view(request):
         'all_scores': all_scores,
         'latest_assessment_date': latest_assessment_date,
         'has_taken_assessment_today': has_taken_assessment_today,
-        'user_data': user_data
+        'user_data': user_data,
+        'recommendations': latest_recommendation,  # Pass the latest recommendation to the template
+        'all_recommendations': all_recommendations,  # Pass all recommendations to the template
+        'has_recommended_today': has_recommended_today  # Pass the flag to the template
     })
 
 def logout_view(request):
