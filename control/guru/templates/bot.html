@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        /* Chat icon styling */
+        .chat-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: #007bff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #fff;
+            font-size: 24px;
+        }
+
+        /* Chat container styling */
+        .chat-container {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 300px;
+            height: 400px;
+            max-width: 100%;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            display: none; /* Hide by default */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        #messages {
+            flex-grow: 1;
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .input-container {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            margin-right: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        #send-button {
+            background-color: #007bff;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #send-button img {
+            width: 24px;
+            height: 24px;
+        }
+
+        #send-button:hover {
+            background-color: #eee;
+        }
+
+        /* Message bubble styling */
+        .message {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background-color: #007bff;
+            align-self: flex-end;
+        }
+
+        .message.bot {
+            background-color: #e1e1e1;
+            color: #000;
+            align-self: flex-start;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-icon" id="chat-icon">
+        💬
+    </div>
+    
+    <div id="chatbox" class="chat-container">
+        <div class="chat-header">MindMate AI</div>
+        <div id="messages"></div>
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Type your message here...">
+            <button id="send-button">
+                <img src="/media/profile_images/R.png" alt="Send">
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        const chatbox = document.getElementById("chatbox");
+        const chatIcon = document.getElementById("chat-icon");
+        const userInput = document.getElementById("user-input");
+        const sendButton = document.getElementById("send-button");
+
+        // Toggle chatbox visibility
+        chatIcon.addEventListener("click", () => {
+            chatbox.style.display = chatbox.style.display === "none" || chatbox.style.display === "" ? "flex" : "none";
+        });
+
+        // Send message on Enter key press and add new line on Shift + Enter
+        userInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendButton.click();
+            }
+        });
+
+        sendButton.addEventListener("click", async () => {
+            const message = userInput.value.trim();
+            if (message) {
+                // Add user message to messages container
+                const messages = document.getElementById("messages");
+                messages.innerHTML += `<div class="message user"><strong>You:</strong> ${message}</div>`;
+                userInput.value = "";
+
+                // Send message to Django backend
+                const response = await fetch("/chatbot/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-CSRFToken": "{{ csrf_token }}",  // Add CSRF token for security
+                    },
+                    body: `message=${encodeURIComponent(message)}`
+                });
+
+                const data = await response.json();
+                if (data.response) {
+                    // Add chatbot response to messages container
+                    messages.innerHTML += `<div class="message bot"><strong>Chatbot:</strong> ${data.response}</div>`;
+                } else {
+                    messages.innerHTML += `<div class="message bot"><strong>Error:</strong> ${data.error}</div>`;
+                }
+
+                // Scroll to the bottom of the messages
+                messages.scrollTop = messages.scrollHeight;
+            }
+        });
+    </script>
+</body>
+</html>

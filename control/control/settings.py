@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-843n-@3a1ngz)7vkpzbry!=)=kwllh-62tg$2@pw_*)8(=$u9t
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['vaguely-precise-bulldog.ngrok-free.app','localhost','127.0.0.1']
 
 
 # Application definition
@@ -128,3 +128,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# settings.py
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://vaguely-precise-bulldog.ngrok-free.app',
+]

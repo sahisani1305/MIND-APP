@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href='https://fonts.googleapis.com/css?family=Comfortaa' rel='stylesheet'>
     <style>
-        /* General Styles */
         body {
             margin: 0;
             font-family: Arial, sans-serif;
             overflow-x: hidden;
-            min-height: 100vh;
+            height: 100vh;
+            min-height: 100vh; /* Ensure body height covers the full viewport */
             display: flex;
             flex-direction: column;
         }
-        
+
         /* Background Styles */
         .background {
             position: fixed;
@@ -26,25 +27,32 @@
             background: linear-gradient(45deg, #83a4d4, #b6fbff);
             z-index: -1;
         }
-        
+
+        .content {
+            margin-left: 50px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
         /* Side Panel Styles */
         .side-panel {
             width: 40px;
-            background-color: #333;
+            background-color:rgb(70, 118, 191);
             color: white;
-            height: 100vh;
-            transition: all 0.3s ease;
             position: fixed;
             top: 0;
+            bottom: 0; /* Ensures the panel covers full height */
             left: 0;
             z-index: 1000;
             overflow: hidden;
+            transition: all 0.3s ease;
         }
-        
+
         .side-panel.open {
             width: 250px;
         }
-        
+
         .side-panel .toggle-btn {
             padding: 10px;
             cursor: pointer;
@@ -52,17 +60,17 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .side-panel .user-info {
             display: none;
             padding: 10px;
             text-align: center;
         }
-        
+
         .side-panel.open .user-info {
             display: block;
         }
-        
+
         .side-panel .user-info img {
             width: 80px;
             height: 80px;
@@ -70,25 +78,25 @@
             margin-bottom: 10px;
             cursor: pointer;
         }
-        
+
         .side-panel .user-info h2,
         .side-panel .user-info p {
             margin: 0;
             padding: 0;
         }
-        
+
         .side-panel .menu {
             padding: 10px;
             border-top: 1px solid white;
             display: none;
         }
-        
+
         .side-panel.open .menu {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-        
+
         .side-panel .menu a {
             display: block;
             color: white;
@@ -96,10 +104,21 @@
             padding: 10px;
             text-align: center;
         }
-        
+
         .side-panel .menu a:hover {
-            background-color: #444;
+            background-color:rgb(35, 42, 52);
         }
+
+        /* Dashboard Grid Layout */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+            padding: 20px;
+            height: 60vh;
+            box-sizing: border-box;
+        }
+
         
         /* Overlay and Blur Effect */
         .content-overlay {
@@ -119,24 +138,6 @@
         .content-overlay.active {
             opacity: 1;
             visibility: visible;
-        }
-        
-        /* Content Styles */
-        .content {
-            margin-left: 50px;
-            padding: 20px;
-            transition: all 0.3s ease;
-            flex: 1;
-        }
-        
-        /* Dashboard Grid Layout */
-        .dashboard-layout {
-            display: grid;
-            grid-template-columns: 250px 1fr;
-            gap: 20px;
-            padding: 20px;
-            height: 60vh;
-            box-sizing: border-box;
         }
         
         /* Left Column containing Calendar and Chart */
@@ -241,6 +242,13 @@
                 max-height: 300px;
                 overflow-y: auto;
             }
+            .greeting-container {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                padding: 2px;
+                font-size: 0.6em;
+            }
         }
         
         @media (max-width: 480px) {
@@ -254,6 +262,7 @@
                 width: auto;
                 height: auto;
                 overflow-y: auto;
+                bottom-margin: 10px; /* Add margin to create gap */
             }
             .chart-container{
                 height: auto;
@@ -268,15 +277,23 @@
                 width: 100% !important;
             }
         
-            .recommendations-container {
-                height: auto;
-            }
-        
             .calendar-container {
-                height: auto;
-                width: 80%;
+                height: 400px;
+                width: 320px;
                 margin: 0 auto;
             }
+            .content {
+                margin-left: 35px;
+                margin-right: 20px;
+                padding: 10px;
+                width: 100%;
+            }
+            .recommendations-container #recommendationContent {
+                height: auto;
+                max-height: 300px;
+                overflow-y: auto;
+            }
+            /* Calendar Styles */
             .calendar {
                 display: grid;
                 grid-template-columns: repeat(7, 1fr);
@@ -297,16 +314,17 @@
             }
             
             .day.active {
-                background-color: #3498db;
-                color: white;
+                background-color:rgb(255, 166, 0);
+                color: black;
                 z-index: 1;
+                font-weight: bold;
             }
             
             .day.active::before {
                 content: '🔥';
-                font-size: 30px;
+                font-size: 50px;
                 position: absolute;
-                top: -2px;
+                top: 5px;
                 left: 50%;
                 transform: translateX(-50%);
                 z-index: -1;
@@ -320,6 +338,23 @@
                 50% {
                     transform: translateX(-50%) translateY(-3px) scale(1.1);
                 }
+            }
+            .greeting-container {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                padding: 2px;
+                font-size: 0.6em;
+            }
+            
+        }
+        @media (max-width: 390px) {
+            .greeting-container {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                padding: 2px;
+                font-size: 0.5em;
             }
         }
         
@@ -352,6 +387,7 @@
             grid-template-columns: repeat(7, 1fr);
             gap: 2px;
             margin: 10px auto;
+            
         }
         
         .day {
@@ -364,12 +400,15 @@
             background-color: #f9f9f9;
             font-size: 0.7em;
             position: relative;
+            font-family: Comfortaa;
         }
         
         .day.active {
-            background-color: #3498db;
-            color: white;
+            background-color:rgb(255, 166, 0);
+            color: black;
             z-index: 1;
+            font-weight: bold;
+
         }
         
         .day.active::before {
@@ -412,6 +451,8 @@
         
         #monthYear {
             font-size: 0.9em;
+            font-family: Comfortaa;
+
         }
         
         /* Chart size controls */
@@ -507,7 +548,7 @@
             cursor: not-allowed;
         }
         
-        .assessment-link .tooltip {
+        .assessment-link .tooltup {
             visibility: hidden;
             width: 200px;
             background-color: black;
@@ -524,36 +565,60 @@
             transition: opacity 0.3s;
         }
         
-        .assessment-link:hover .tooltip {
+        .assessment-link:hover .tooltup {
             visibility: visible;
             opacity: 1;
         }
         
-        /* Dropdown and Refresh Styles */
-        #assessmentDateDropdown {
-            margin-bottom: 10px;
-            padding: 5px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            background-color: white;
-            font-size: 0.9em;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
+        /* Adjusting the size of the button */
         .refresh-button {
-            background: none;
-            border: none;
-            cursor: pointer;
+            position: relative;
             display: inline-block;
+            padding: 2px; /* Further reduced padding */
+            background-color: #4CAF50; /* Green background */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 8px; /* Further reduced font size */
         }
-        
+
+        .refresh-button:disabled {
+            background-color: #ccc; /* Gray background when disabled */
+            cursor: not-allowed;
+        }
+
+        /* Adjusting the size of the refresh icon inside the button */
         .refresh-icon {
-            width: 40px;
-            height: 40px;
+            width: 40px; /* Reduced width */
+            height: 40px; /* Reduced height */
         }
-        
+
+        /* Styles for the tooltip */
+        .tooltip {
+            display: none;
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 5px;
+            padding: 5px;
+            z-index: 1;
+            width: 200px;
+            bottom: 125%; /* Position the tooltip above the button */
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* Show the tooltip on hover */
+        .refresh-button:hover .tooltip {
+            display: block;
+            opacity: 1;
+        }
+
+
         .dropdown-refresh-container {
             display: flex;
             justify-content: space-between;
@@ -561,14 +626,87 @@
             margin-bottom: 10px;
         }
         
-        #recommendationDropdown {
+        .custom-select-container {
+            position: relative;
+            width: 100%;
+            max-width: 200px;
+        }
+        
+        .custom-select {
             padding: 5px;
             border-radius: 5px;
             border: 1px solid #ccc;
             background-color: white;
             font-size: 0.9em;
             width: 100%;
-            max-width: 200px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="#3498db" d="M2 0L0 2h4zM2 5L0 3h4z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 0.7em top 50%;
+            background-size: 0.65em auto;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 255, 0.3); /* Blue shadow */
+            font-family: Comfortaa;
+        }
+        
+        .custom-select:hover {
+            border-color: #3498db;
+        }
+        
+        .custom-select-container::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            width: 0.8em;
+            height: 0.5em;
+            background-color: #3498db;
+            clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+        
+        .custom-select option:checked {
+            background-color: #3498db; /* Selected option in blue */
+            color: white; /* Text color for selected option */
+        }
+        
+        .custom-select option:hover {
+            background-color: #2980b9; /* Hover option in blue */
+            color: white; /* Text color for hover option */
+        }
+        
+        .greeting-container {
+            display: flex;
+            flex-direction:column;
+            justify-content: space-between;
+            background-color: rgb(70, 118, 191);
+            border-radius: 15px;
+            padding-left: 10px;
+            padding-right: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            font-family: 'Comfortaa';
+            color: white;
+            font-size: 0.8em;
+        }
+        .text-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Comfortaa';
+            color: black;
+            font-size: 0.8em;
+        }
+        .image-container {
+            shadow: 0 2px 4px rgba(0, 0, 0, 0.5)
+        }
+        .recommendations-container #recommendationContent {
+            height: auto;
+            max-height: 300px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -589,23 +727,25 @@
             <input type="file" id="profileImageUpload" class="profile-image-upload" accept="image/*">
             
             <div class="user-details">
+                <div class='text-container'>
                 <h2>{{ user_data.username }}</h2>
-                <p><strong>Name:</strong> {{ user_data.name }}</p>
-                <p data-full-text="{{ user_data.email }}"><strong>Email:</strong> {{ user_data.email }}</p>
-                <p><strong>Mobile Number:</strong> {{ user_data.mobile }}</p>
-                <p><strong>Age:</strong> {{ user_data.age }}</p>
-                <p><strong>Occupation:</strong> {{ user_data.occupation }}</p>
-                <p><strong>Gender:</strong> {{ user_data.gender }}</p>
+                </div>
+                <p style="font-family: 'Comfortaa'"><strong>Name:</strong> {{ user_data.name }}</p>
+                <p style="font-family: 'Comfortaa'; font-size: 0.7em;" data-full-text="{{ user_data.email }}"><strong>Email:</strong> {{ user_data.email }}</p>
+                <p style="font-family: 'Comfortaa'"><strong>Mobile Number:</strong> {{ user_data.mobile }}</p>
+                <p style="font-family: 'Comfortaa'"><strong>Age:</strong> {{ user_data.age }}</p>
+                <p style="font-family: 'Comfortaa'"><strong>Occupation:</strong> {{ user_data.occupation }}</p>
+                <p style="font-family: 'Comfortaa'"><strong>Gender:</strong> {{ user_data.gender }}</p>
             </div>
         </div>
         <div class="menu">
             <div class="assessment-link" style="position: relative; display: inline-block;">
-                <a href="{% url 'assessment' %}" class="{% if has_taken_assessment_today %}disabled{% endif %}" style="display: flex; align-items: center;">
+                <a href="{% url 'assessment' %}" class="{% if has_taken_assessment_today %}disabled{% endif %}" style="font-family: 'Comfortaa';display: flex; align-items: center;">
                     <img src="/media/profile_images/ext_file_generic-512.webp" alt="Paper Logo" style="margin-right: 5px; width: 32px; height: 32px;">
                     Take Assessment
                 </a>
                 {% if has_taken_assessment_today %}
-                    <span class="tooltip">Assessment taken today, come back tomorrow</span>
+                    <span style="font-family: 'Comfortaa'" class="tooltup">Assessment taken today, come back tomorrow</span>
                 {% endif %}
             </div>
         </div>
@@ -613,21 +753,27 @@
 
     <div class="content" id="content">
         <div style="display: flex; justify-content: space-between; align-items: center; position: relative;">
-            <h1>Hello, {{ user_data.name }}!</h1>
-            <img id="profileImageTopRight" src="{% if profile_image_url %}{{ profile_image_url }}{% else %}/media/profile_images/avatar-1024x1024.jpeg{% endif %}" alt="User Logo" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer;" onclick="toggleLogoutBox()">
-            <div id="logoutBox" style="display: none; position: fixed; top: 60px; right: 20px; background: white; border: 1px solid #ccc; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); z-index: 1001;">
+            <div class="greeting-container">
+                <h1>Hello, {{ user_data.name }} !</h1>
+            </div>              
+            <div class="image-container">
+                <img id="profileImageTopRight" src="{% if profile_image_url %}{{ profile_image_url }}{% else %}/media/profile_images/avatar-1024x1024.jpeg{% endif %}" alt="User Logo" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer;" onclick="toggleLogoutBox()">
+            </div>
+            <div id="logoutBox" style=" font-family: Comfortaa; display: none; position: fixed; top: 60px; right: 20px; background: white; border: 1px solid #ccc; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); z-index: 1001;">
                 <p>Do you want to logout?</p>
                 <a href="{% url 'logout' %}" style="color: red;">Logout</a>
             </div>
         </div>
         {% if not profile_image_url %}
-            <p>Please <a href="" onclick="document.getElementById('profileImageUpload').click(); return false;">add a profile photo</a>.</p>
+            <p style="font-family: 'Comfortaa'" >Please <a href="" onclick="document.getElementById('profileImageUpload').click(); return false;">add a profile photo</a>.</p>
         {% endif %}
 
         <div class="dashboard-layout">
             <div class="left-column">
                 <div class="calendar-container">
+                    <div class='text-container'>
                     <h2 style="font-size: 1em;">Streaks</h2>
+                    </div>
                     <div class="nav-buttons">
                         <button onclick="changeMonth(-1)">&#9664;</button>
                         <div id="monthYear"></div>
@@ -638,72 +784,78 @@
 
                 {% if scores %}
                 <div class="chart-container">
+                    <div class='text-container'>
                     <h2 style="font-size: 1em;">Assessment Scores</h2>
-                    <select id="assessmentDateDropdown" onchange="updatePieChart()">
-                        <option value="latest">Latest Assessment</option>
-                        {% for score in all_scores %}
-                            <option value="{{ score.date }}">{{ score.date }}</option>
-                        {% endfor %}
-                    </select>
+                    </div>
+                    <div class="custom-select-container">
+                        <select id="assessmentDateDropdown" class="custom-select" onchange="updatePieChart()">
+                            <option value="latest">Latest Assessment</option>
+                            {% for score in all_scores %}
+                                <option value="{{ score.date }}">{{ score.date }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <canvas id="dass21Chart"></canvas>
-                    <p style="font-size: 0.8em;">Depression: <span id="depressionSeverity">{{ severity.depression }}</span></p>
-                    <p style="font-size: 0.8em;">Anxiety: <span id="anxietySeverity">{{ severity.anxiety }}</span></p>
-                    <p style="font-size: 0.8em;">Stress: <span id="stressSeverity">{{ severity.stress }}</span></p>
+                    <p style="font-family: 'Comfortaa'" style="font-size: 0.8em;">Depression: <span id="depressionSeverity">{{ severity.depression }}</span></p>
+                    <p style="font-family: 'Comfortaa'" style="font-size: 0.8em;">Anxiety: <span id="anxietySeverity">{{ severity.anxiety }}</span></p>
+                    <p style="font-family: 'Comfortaa'" style="font-size: 0.8em;">Stress: <span id="stressSeverity">{{ severity.stress }}</span></p>
                 </div>
                 {% else %}
                 <div class="chart-container">
+                    <div class="text-container">
                     <h2 style="font-size: 1em;">No Assessment Scores</h2>
                     <p>Please take the assessment test first.</p>
+                    </div>
                 </div>
                 {% endif %}
             </div>
             <div class="right-column">
             {% if scores %}
             <div class="line-graph-container">
+                <div class='text-container'>
                 <h2 style="font-size: 1em;">Cumulative Scores Over Time</h2>
+                </div>
                 <canvas id="lineChart"></canvas>
             </div>
             {% endif %}
 
             <div class="recommendations-container">
+                <div class='text-container'>
                 <h2>Personalized Recommendations</h2>
+                </div>
                 <!-- Dropdown to select previous recommendations -->
                 <div class="dropdown-refresh-container">
-                    <select id="recommendationDropdown" onchange="updateRecommendation()">
-                        <option value="latest">Latest Recommendation</option>
+                    <div class="custom-select-container">
+                      <select id="recommendationDropdown" class="custom-select" onchange="updateRecommendation()">
+                        <option value="latest">Recommendations</option>
                         {% for recommendation in all_recommendations %}
                             <option value="{{ recommendation.recommendations }}">
                                 {{ recommendation.timestamp|date:"Y-m-d H:i" }}
                             </option>
                         {% endfor %}
-                    </select>
+                      </select>
+                    </div>
                     
                     <!-- Form to generate new recommendations with refresh icon -->
                     <form method="POST" action="{% url 'user_view' %}">
-                        {% csrf_token %}
-                        <button type="submit" name="generate_recommendations" class="refresh-button" {% if has_recommended_today %}disabled{% endif %}>
-                            <img src="/media/profile_images/refresh.png" class="refresh-icon" alt="Refresh">
-                        </button>
+                      {% csrf_token %}
+                      <button type="submit" name="generate_recommendations" class="refresh-button" 
+                          {% if has_recommended_today or not has_taken_assessment_today %}disabled{% endif %}
+                          title="{% if not has_taken_assessment_today %}You haven't taken the assessment today. Please complete the assessment to generate recommendations.{% else %}{% if has_recommended_today %}You have already generated recommendations today. Please check back tomorrow.{% endif %}{% endif %}">
+                          <img src="/media/profile_images/refresh.png" class="refresh-icon" alt="Refresh">
+                      </button>
                     </form>
-                    {% if has_recommended_today %}
-                        <p class="tooltip">You have already generated recommendations today. Please check back tomorrow.</p>
-                    {% endif %}
-                </div>
-                
+                  </div>
+                  
                 <!-- Display the selected recommendation -->
                 <div id="recommendationContent">
                     {% if recommendations %}
                         <p>{{ recommendations|linebreaksbr }}</p>
                     {% else %}
-                        <p>No recommendations available. Please generate new recommendations.</p>
+                        <p style="font-family: 'Comfortaa'" >No recommendations available. Please generate new recommendations.</p>
                     {% endif %}
                 </div>
-            
-                {% if not recommendations %}
-                    <p class="text-danger">Failed to generate new recommendations. Please try again later.</p>
-                {% endif %}
-            </div>
-            </div>            
+            </div>                        
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -912,6 +1064,7 @@
             type: 'pie',
             data: {
                 labels: ['Depression', 'Anxiety', 'Stress'],
+                fontFamily: 'Comfortaa',
                 datasets: [{
                     data: [initialDepression, initialAnxiety, initialStress],
                     backgroundColor: [
@@ -1085,6 +1238,6 @@
         document.getElementById('anxietySeverity').textContent = selectedScore.severity?.anxiety || 'N/A'; // Default to 'N/A' if undefined
         document.getElementById('stressSeverity').textContent = selectedScore.severity?.stress || 'N/A'; // Default to 'N/A' if undefined
     }
-            </script>
+    </script>
 </body>
 </html>

@@ -16,10 +16,10 @@ from pymongo import MongoClient
 client = MongoClient("mongodb://localhost:27017/")
 db = client.mindmate_db
 questions_collection = db.questions  # Assuming your collection is named 'questions'
+key="xxxxx" # Replace with your OpenAI API key
 
 def index(request):
     return render(request, 'index.html')
-
 def fetch_questions_from_db():
     categories = questions_collection.find({}, {"_id": 0, "category": 1, "questions": 1})
     questions_db = {}
@@ -30,28 +30,35 @@ def fetch_questions_from_db():
             print(f"Skipping document due to missing fields: {category}")
     return questions_db
 
-import random
+def select_random_questions(username, questions_db, num_questions_per_category=7):
+    # Access the user_questions collection
+    user_record = db.user_questions.find_one({"username": username})
+    
+    if user_record:
+        previously_asked_questions = user_record.get("questions", {})
+    else:
+        previously_asked_questions = {}
 
-import random
-
-def select_random_questions(username, questions_db, session_questions, num_questions_per_category=7):
     selected_questions = {}
-    
     for category, questions in questions_db.items():
-        # Filter out previously asked questions for this session
-        available_questions = [q for q in questions if q not in session_questions]
-
-        if len(available_questions) >= num_questions_per_category:
-            # If enough new questions are available, select randomly
-            selected_questions[category] = random.sample(available_questions, num_questions_per_category)
+        # Select random questions from the full list (allow reuse)
+        if len(questions) >= num_questions_per_category:
+            selected_questions[category] = random.sample(questions, num_questions_per_category)
         else:
-            # If not enough new questions, reuse previously asked questions
-            print(f"Not enough new questions in category '{category}'. Reusing previously asked questions.")
-            selected_questions[category] = random.sample(questions, min(num_questions_per_category, len(questions)))
-        
-        # Update the session questions
-        session_questions.update(selected_questions[category])
+            # If there are fewer questions than requested, select all available questions
+            print(f"Not enough questions in category '{category}' to select {num_questions_per_category} questions.")
+            selected_questions[category] = questions
+
+        # Update the previously asked questions for this user
+        previously_asked_questions[category] = previously_asked_questions.get(category, []) + selected_questions[category]
     
+    # Update the user_questions collection
+    db.user_questions.update_one(
+        {"username": username},
+        {"$set": {"questions": previously_asked_questions}},
+        upsert=True
+    )
+
     return selected_questions
 
 @login_required
@@ -273,34 +280,17 @@ option_mapping = {
     2: "Applied to me to a considerable degree, or a good part of the time",
     3: "Applied to me very much, or most of the time"
 }
-
-# Keywords for relevance check
-relevant_keywords = [
-    "depression", "anxiety", "stress", "mental health", "therapy", "meditation",
-    "mindfulness", "counseling", "wellness", "self-care", "emotional", "psychology"
-]
-
-def is_followup_relevant(followup_text):
-    """
-    Check if the follow-up question is relevant to mental health.
-    """
-    vectorizer = TfidfVectorizer()
-    keyword_matrix = vectorizer.fit_transform(relevant_keywords)
-    followup_matrix = vectorizer.transform([followup_text])
-    similarity = cosine_similarity(keyword_matrix, followup_matrix)
-    return np.max(similarity) > 0.2  # Threshold for relevance
-
 def generate_text_with_openrouter(prompt):
     """
     Generate text using the DeepSeek model via OpenRouter API.
     """
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
-        api_key="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",  # Replace with your OpenRouter API key
+        api_key= key,  # Replace with your OpenRouter API key
     )
     try:
         completion = client.chat.completions.create(
-            model="deepseek/deepseek-r1:free",  # Use the correct DeepSeek model
+            model="meta-llama/llama-3.2-90b-vision-instruct:free",  # Use the correct DeepSeek model
             messages=[
                 {"role": "user", "content": prompt}
             ],
@@ -411,12 +401,19 @@ def user_view(request):
             for q, option_text in selected_options_text.items():
                 prompt += f"- {q}: {option_text}\n"
             prompt += (
-                "Based upon the questions and the options chosen for the questions, please provide some tips on how to maintain, prevent, and cure mental illness like depression, anxiety and stress.\n"
-                "Also, use the severity for depression, anxiety, and stress to provide the precautions and prevention tips.\n"
-                "Use resources like age, gender, and occupation to be more specific while giving tips.\n"
-                "Give the advices in points, i would like to get 5 points for depression, 5 for anxiety and 5 for stress.\n"
-                "these points should cover the cure if needed, maintainance and preventive measures.\n"
-            )
+                """You are a compassionate mental health assistant.  
+                Based on the user's responses to the questionnaire, please:  
+                1. Provide highly specific and actionable tips to maintain, prevent, and address mental illnesses such as depression, anxiety, and stress. Tailor your advice based on the user's responses, considering factors such as age, gender, and occupation.
+                2. Offer candid, practical recommendations with realistic, implementable steps that target the user's current emotional state and potential mental health challenges.  
+                3. For each category (depression, anxiety, stress), provide exactly five points:  
+                    - Focus on cure where applicable, maintenance strategies, and preventive measures.  
+                    - Ensure that the suggestions are precise, realistic, and user-friendly.
+                Response should be:  
+                - Directly acknowledge specific mental health concerns.  
+                - Use formal but compassionate language.  
+                - Provide reality checks to give insight into the user's current state.  
+                - Offer clear, actionable steps to maintain and improve mental well-being, with targeted advice for depression, anxiety, and stress."""
+)
 
             # Generate recommendations using the OpenRouter API
             recommendations = generate_text_with_openrouter(prompt)
@@ -489,3 +486,109 @@ def upload_profile_image(request):
             
             return JsonResponse({'success': True})
     return JsonResponse({'success': False})
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from pymongo import MongoClient
+import openai
+from datetime import datetime
+
+# MongoDB setup
+client = MongoClient("mongodb://localhost:27017/")
+db = client.mindmate_db
+collection = db.conversations
+
+# Define a test user ID
+TEST_USER_ID = "test_user"
+
+def save_conversation(user_id, role, message, timestamp):
+    """
+    Save a conversation message to MongoDB.
+    """
+    date_str = timestamp.date().isoformat()  # Convert date to string
+    conversation_data = {
+        "role": role,
+        "message": message,
+        "timestamp": timestamp
+    }
+    # Find the document for the specific user and date, and update it
+    collection.update_one(
+        {"user_id": user_id, "date": date_str},
+        {"$push": {"messages": conversation_data}},
+        upsert=True
+    )
+
+def get_conversation(user_id, date):
+    """
+    Retrieve conversation history for a specific user and date.
+    """
+    date_str = date.isoformat()
+    conversation = collection.find_one({"user_id": user_id, "date": date_str})
+    return conversation["messages"] if conversation else []
+
+def generate_text_with_openrouter(prompt, user_id, user_message, user_conversation):
+    """
+    Generate text using the DeepSeek model via OpenRouter API.
+    """
+    client = openai.OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key = key,  # Replace with your OpenRouter API key
+    )
+    try:
+        # Full prompt including instructions for relevance and Indian helplines
+        full_prompt = f"""
+        You are an AI assistant named MindMate AI designed to provide support for mental health, depression, anxiety, and stress. Respond to the following user message only if it is relevant to these topics. If the message is not relevant, respond with "Sorry, I can only assist with mental health-related topics."
+
+        Additionally, provide the user with Indian helpline numbers for mental health support when appropriate. Give the helpline details only when asked for, and if user directly asks for helpline details first ask him to define what happened. The helplines are:
+        - Kiran Mental Health Rehabilitation Helpline: 1800-599-0019
+        - Snehi Helpline for Emotional Support: 91-22-2772 6771
+        - Fortis Mental Health Helpline: 91-8376804102
+
+        Conversation history: {user_conversation}
+        User message: {user_message}
+        """
+
+        completion = client.chat.completions.create(
+            model="meta-llama/llama-3.2-90b-vision-instruct:free",  # Use the correct DeepSeek model
+            messages=[
+                {"role": "system", "content": full_prompt}
+            ],
+            max_tokens=2000  # Adjust as needed
+        )
+        # Check if the completion object is valid and has the expected structure
+        if completion and hasattr(completion, 'choices') and len(completion.choices) > 0:
+            response_content = completion.choices[0].message.content
+
+            # Save the response to the conversation history
+            save_conversation(user_id, "assistant", response_content, datetime.now())
+
+            return response_content
+        else:
+            print("Error: Invalid or empty response from OpenRouter API.")
+            return None
+    except Exception as e:
+        print(f"Error generating text with OpenRouter: {e}")
+        return None
+
+@csrf_exempt
+def chatbot(request):
+    if request.method == "POST":
+        user_id = TEST_USER_ID  # Use the test user ID
+        user_message = request.POST.get("message")
+        
+        # Save the user message to the conversation history
+        save_conversation(user_id, "user", user_message, datetime.now())
+
+        # Retrieve conversation history for today
+        user_conversation = get_conversation(user_id, datetime.today().date())
+
+        response_text = generate_text_with_openrouter("Respond appropriately to the user's message:", user_id, user_message, user_conversation)
+        if response_text:
+            return JsonResponse({"response": response_text})
+        else:
+            return JsonResponse({"error": "Failed to generate a response from the model."})
+    return JsonResponse({"error": "Invalid request method."})
+
+def chatbot_interface(request):
+    return render(request, "bot.html")

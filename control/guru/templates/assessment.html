@@ -10,7 +10,7 @@
             height: 100%;
             overflow: hidden;
         }
-
+        
         .background {
             position: fixed;
             top: 0;
@@ -20,7 +20,7 @@
             background: linear-gradient(45deg, #83a4d4, #b6fbff);
             z-index: -1;
         }
-
+        
         .page-header {
             text-align: center;
             padding: 10px;
@@ -28,75 +28,121 @@
             top: 0;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(5px);
             z-index: 10;
+            margin-bottom: 120px; /* Added margin-bottom for gap */
         }
-
+        
         .page-header h1 {
             color: #2c3e50;
             font-size: 24px;
             margin: 0 0 5px 0;
         }
-
+        
         .page-header p {
             color: #2c3e50;
             margin: 3px 0;
             font-size: 14px;
         }
-
+        
         .chat-container {
             max-width: 800px;
             width: 85%;
-            margin: 105px auto;
+            margin: 180px auto; /* Increased margin-top for gap */
             padding: 25px;
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 20px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
             position: relative;
-            height: calc(100vh - 320px); /* Reduced the height */
+            height: calc(100vh - 340px); /* Reduced the height */
             overflow-y: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
         }
-
+        
         .chat-container::-webkit-scrollbar {
             display: none;
         }
-
         .question {
             margin-bottom: 20px;
             padding: 10px;
             display: none; /* Hide all questions initially */
         }
-
+        
         .question.active {
             display: block; /* Show the active question */
         }
-
+        
         .question-label {
             display: block;
             margin-bottom: 15px;
             font-weight: 500;
             color: #2c3e50;
         }
-
+        
         .radio-option {
             display: flex;
             align-items: center;
             margin-bottom: 8px;
             padding-left: 20px;
         }
-
+        
         .radio-option input[type="radio"] {
-            margin-right: 10px;
+            display: none;
         }
-
+        
         .radio-option label {
-            margin: 0;
+            position: relative;
+            padding-left: 30px;
+            cursor: pointer;
             color: #2c3e50;
+            user-select: none;
         }
-
+        
+        /* Custom Radio Button */
+        .radio-option label::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid #3498db;
+            border-radius: 50%;
+            background-color: white;
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        /* Checked State */
+        .radio-option input[type="radio"]:checked + label::before {
+            background-color: #2ecc71;
+            border: 2px solid #2ecc71; /* Green border to match the background */
+            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.3);
+        }
+        
+        /* White Tick */
+        .radio-option label::after {
+            content: '✔';
+            position: absolute;
+            left: 2px; /* Adjust as needed to overflow */
+            top: 50%;
+            bottom: -40px;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 30px; /* Increase size for overflow effect */
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            transform-origin: center;
+        }
+        
+        /* Checked Inner Tick */
+        .radio-option input[type="radio"]:checked + label::after {
+            opacity: 1;
+            transform: translateY(-50%) scale(1.2); /* Slightly scale up the tick */
+        }
+        
         button[type="submit"] {
             padding: 12px 25px;
             border: none;
@@ -110,18 +156,18 @@
             display: none; /* Hide submit button initially */
             width: 200px;
         }
-
+        
         button[type="submit"]:hover {
             background-color: #27ae60;
             transform: scale(1.05);
         }
-
+        
         .nav-buttons {
             display: flex;
             justify-content: space-between;
             margin-top: 20px;
         }
-
+        
         .nav-buttons button {
             padding: 10px 20px;
             border: none;
@@ -131,28 +177,46 @@
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.3s ease;
         }
-
+        
         .nav-buttons button:hover {
             background-color: #2980b9;
             transform: scale(1.05);
         }
-
+        
         @media (max-width: 480px) {
             .chat-container {
                 width: 90%;
                 padding: 15px;
-                height: calc(100vh - 160px);
+                height: 260px;
                 margin-top: 70px;
             }
-
+        
             .page-header h1 {
                 font-size: 20px;
             }
-
+        
             .page-header p {
                 font-size: 12px;
             }
         }
+        
+        @media (min-width: 481px) and (max-width: 1500px) {
+            .chat-container {
+                max-width: 700px;
+                width: 90%;
+                padding: 20px;
+                height: 260px;
+                margin-top: 90px;
+            }
+        
+            .page-header h1 {
+                font-size: 22px;
+            }
+        
+            .page-header p {
+                font-size: 13px;
+            }
+        }        
     </style>
 </head>
 <body>
