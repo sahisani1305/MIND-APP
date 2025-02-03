@@ -16,7 +16,7 @@ from pymongo import MongoClient
 client = MongoClient("mongodb://localhost:27017/")
 db = client.mindmate_db
 questions_collection = db.questions  # Assuming your collection is named 'questions'
-key="xxxxx" # Replace with your OpenAI API key
+key="xxxx" # Replace with your OpenAI API key
 
 def index(request):
     return render(request, 'index.html')
@@ -499,9 +499,6 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client.mindmate_db
 collection = db.conversations
 
-# Define a test user ID
-TEST_USER_ID = "test_user"
-
 def save_conversation(user_id, role, message, timestamp):
     """
     Save a conversation message to MongoDB.
@@ -519,36 +516,63 @@ def save_conversation(user_id, role, message, timestamp):
         upsert=True
     )
 
-def get_conversation(user_id, date):
+def get_conversation(user_id):
     """
-    Retrieve conversation history for a specific user and date.
+    Retrieve entire conversation history for a specific user.
     """
-    date_str = date.isoformat()
-    conversation = collection.find_one({"user_id": user_id, "date": date_str})
-    return conversation["messages"] if conversation else []
+    conversations = collection.find({"user_id": user_id})
+    messages = []
+    for conv in conversations:
+        messages.extend(conv.get("messages", []))
+    return messages
 
-def generate_text_with_openrouter(prompt, user_id, user_message, user_conversation):
+def build_prompt(user_message, user_conversation, user_data=None, severity=None, include_helplines=False):
+    """
+    Build the prompt for the OpenRouter API call based on the conditions.
+    """
+    base_prompt = f"""
+    You are an AI assistant named MindMate AI designed to provide support for mental health, depression, anxiety, and stress. Respond to the following user message only if it is relevant to these topics. Allow the words like "latest report information" and "helpline". If the message is not relevant, respond with "Sorry, I can only assist with mental health-related topics."
+    Allow general greetings and small talk to maintain a conversational tone.
+    Also, ask users about their health and mood.
+    When asked about latest report information, provide the user with the latest mental health assessment report showing the gender, age, occupation, and the severity of depression, anxiety, and stress.
+    Keep it in a conversational tone. Don't say too much information if not required or asked, and keep the responses short and simple.
+    """
+    if user_data and severity:
+        user_info = f"""
+        User Information:
+        Age: {user_data.get('age', 'unknown')}
+        Gender: {user_data.get('gender', 'unknown')}
+        Occupation: {user_data.get('occupation', 'unknown')}
+        Latest Mental Health Assessment:
+        Depression: {severity.get('depression', 'Not specified')}
+        Anxiety: {severity.get('anxiety', 'Not specified')}
+        Stress: {severity.get('stress', 'Not specified')}
+        """
+        base_prompt += user_info
+    if include_helplines:
+        helplines = """
+        Additionally, provide the user with Indian helpline numbers for mental health support when appropriate. The helplines are:
+        - Kiran Mental Health Rehabilitation Helpline: 1800-599-0019
+        - Snehi Helpline for Emotional Support: 91-22-2772 6771
+        - Fortis Mental Health Helpline: 91-8376804102
+        """
+        base_prompt += helplines
+    # Format the conversation history
+    conversation_history = "\n".join([f"{msg['role']}: {msg['message']}" for msg in user_conversation])
+    base_prompt += f"\nConversation history:\n{conversation_history}\nUser message: {user_message}"
+    return base_prompt
+
+def generate_chat_with_openrouter(user_id, user_message, user_conversation, user_data=None, severity=None, include_helplines=False):
     """
     Generate text using the DeepSeek model via OpenRouter API.
     """
     client = openai.OpenAI(
         base_url="https://openrouter.ai/api/v1",
-        api_key = key,  # Replace with your OpenRouter API key
+        api_key=key,  # Replace with your OpenRouter API key
     )
     try:
-        # Full prompt including instructions for relevance and Indian helplines
-        full_prompt = f"""
-        You are an AI assistant named MindMate AI designed to provide support for mental health, depression, anxiety, and stress. Respond to the following user message only if it is relevant to these topics. If the message is not relevant, respond with "Sorry, I can only assist with mental health-related topics."
-
-        Additionally, provide the user with Indian helpline numbers for mental health support when appropriate. Give the helpline details only when asked for, and if user directly asks for helpline details first ask him to define what happened. The helplines are:
-        - Kiran Mental Health Rehabilitation Helpline: 1800-599-0019
-        - Snehi Helpline for Emotional Support: 91-22-2772 6771
-        - Fortis Mental Health Helpline: 91-8376804102
-
-        Conversation history: {user_conversation}
-        User message: {user_message}
-        """
-
+        # Build the prompt dynamically
+        full_prompt = build_prompt(user_message, user_conversation, user_data, severity, include_helplines)
         completion = client.chat.completions.create(
             model="meta-llama/llama-3.2-90b-vision-instruct:free",  # Use the correct DeepSeek model
             messages=[
@@ -559,10 +583,8 @@ def generate_text_with_openrouter(prompt, user_id, user_message, user_conversati
         # Check if the completion object is valid and has the expected structure
         if completion and hasattr(completion, 'choices') and len(completion.choices) > 0:
             response_content = completion.choices[0].message.content
-
             # Save the response to the conversation history
             save_conversation(user_id, "assistant", response_content, datetime.now())
-
             return response_content
         else:
             print("Error: Invalid or empty response from OpenRouter API.")
@@ -574,21 +596,35 @@ def generate_text_with_openrouter(prompt, user_id, user_message, user_conversati
 @csrf_exempt
 def chatbot(request):
     if request.method == "POST":
-        user_id = TEST_USER_ID  # Use the test user ID
+        user_id = request.user.username  # Use the logged-in user's username
         user_message = request.POST.get("message")
-        
         # Save the user message to the conversation history
         save_conversation(user_id, "user", user_message, datetime.now())
-
-        # Retrieve conversation history for today
-        user_conversation = get_conversation(user_id, datetime.today().date())
-
-        response_text = generate_text_with_openrouter("Respond appropriately to the user's message:", user_id, user_message, user_conversation)
+        # Retrieve entire conversation history for the user
+        user_conversation = get_conversation(user_id)
+        # Fetch user data and assessment information for personalized responses
+        user_data = db.users.find_one({'username': user_id})
+        latest_assessment = db.assessments.find_one({'username': user_id}, sort=[('timestamp', -1)])
+        severity = latest_assessment['severity'] if latest_assessment else None
+        # Determine if helplines or user information should be included in the prompt
+        include_helplines = False
+        include_user_info = False
+        if "latest report" in user_message.lower() or "reports information" in user_message.lower():
+            include_user_info = True
+        if "helpline" in user_message.lower() or "help based on my reports" in user_message.lower():
+            include_helplines = True
+            if "help based on my reports" in user_message.lower():
+                include_user_info = True
+        response_text = generate_chat_with_openrouter(user_id, user_message, user_conversation, user_data if include_user_info else None, severity if include_user_info else None, include_helplines)
         if response_text:
             return JsonResponse({"response": response_text})
         else:
             return JsonResponse({"error": "Failed to generate a response from the model."})
+    elif request.method == "GET":
+        user_id = request.user.username  # Use the logged-in user's username
+        # Retrieve entire conversation history for the user
+        user_conversation = get_conversation(user_id)
+        # Prepare the conversation history for display
+        conversation_history = [{"role": msg["role"], "message": msg["message"]} for msg in user_conversation]
+        return JsonResponse({"conversation_history": conversation_history})
     return JsonResponse({"error": "Invalid request method."})
-
-def chatbot_interface(request):
-    return render(request, "bot.html")
