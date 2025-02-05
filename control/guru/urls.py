@@ -15,4 +15,5 @@ urlpatterns = [
     path('upload_profile_image/', views.upload_profile_image, name='upload_profile_image'),
     path('assessment/', views.assessment, name='assessment'),
     path('chatbot/', views.chatbot, name='chatbot'),
+    path('archive-chat/', views.archive_chat, name='archive_chat'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

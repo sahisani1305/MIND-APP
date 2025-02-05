@@ -1,7 +1,6 @@
 import os
 import random
 from datetime import datetime
-from .decorators import admin_required
 from bson import ObjectId
 from django.conf import settings
 from django.contrib.auth import authenticate, login as auth_login, logout
@@ -11,12 +10,26 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from pymongo import MongoClient
+from django.views.decorators.csrf import csrf_exempt
+from .decorators import admin_required
+import openai
+from openai import OpenAI
 
 # MongoDB setup
 client = MongoClient("mongodb://localhost:27017/")
 db = client.mindmate_db
 questions_collection = db.questions  # Assuming your collection is named 'questions'
 key="xxxx" # Replace with your OpenAI API key
+archive_collection = db.archive_conversations
+# Option mapping
+option_mapping = {
+    0: "Did not apply to me at all",
+    1: "Applied to me to some degree, or some of the time",
+    2: "Applied to me to a considerable degree, or a good part of the time",
+    3: "Applied to me very much, or most of the time"
+}
+collection = db.conversations
+
 
 def index(request):
     return render(request, 'index.html')
@@ -260,26 +273,6 @@ def admin_view(request):
 
     return render(request, 'admin.html', {'users': users})
 
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from pymongo import MongoClient
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
-from openai import OpenAI  # Import the OpenAI library
-from datetime import datetime  # Import datetime for date handling
-
-# Connect to MongoDB
-client = MongoClient("mongodb://localhost:27017/")
-db = client.mindmate_db
-
-# Option mapping
-option_mapping = {
-    0: "Did not apply to me at all",
-    1: "Applied to me to some degree, or some of the time",
-    2: "Applied to me to a considerable degree, or a good part of the time",
-    3: "Applied to me very much, or most of the time"
-}
 def generate_text_with_openrouter(prompt):
     """
     Generate text using the DeepSeek model via OpenRouter API.
@@ -487,18 +480,6 @@ def upload_profile_image(request):
             return JsonResponse({'success': True})
     return JsonResponse({'success': False})
 
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from pymongo import MongoClient
-import openai
-from datetime import datetime
-
-# MongoDB setup
-client = MongoClient("mongodb://localhost:27017/")
-db = client.mindmate_db
-collection = db.conversations
-
 def save_conversation(user_id, role, message, timestamp):
     """
     Save a conversation message to MongoDB.
@@ -628,3 +609,47 @@ def chatbot(request):
         conversation_history = [{"role": msg["role"], "message": msg["message"]} for msg in user_conversation]
         return JsonResponse({"conversation_history": conversation_history})
     return JsonResponse({"error": "Invalid request method."})
+
+
+@csrf_exempt
+def archive_chat(request):
+    if request.method == "POST":
+        try:
+            # Get the current user's identifier
+            user_id = request.user.username  # Changed to match conversation storage format
+            
+            # 1. Retrieve current conversations
+            current_conversations = list(collection.find({"user_id": user_id}))
+            
+            if not current_conversations:
+                return JsonResponse({"status": "success", "message": "No chats to archive"})
+            
+            # 2. Archive the conversations
+            archive_result = archive_collection.insert_one({
+                "user_id": user_id,
+                "archived_at": datetime.now(),
+                "conversations": current_conversations
+            })
+            
+            # 3. Delete from original collection with verification
+            delete_result = collection.delete_many({"user_id": user_id})
+            
+            # Verify deletion
+            if delete_result.deleted_count == len(current_conversations):
+                return JsonResponse({
+                    "status": "success",
+                    "archived_count": len(current_conversations),
+                    "deleted_count": delete_result.deleted_count
+                })
+            else:
+                # Handle partial deletion
+                archive_collection.delete_one({"_id": archive_result.inserted_id})
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Partial deletion occurred, archive rolled back"
+                })
+                
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)})
+    
+    return JsonResponse({"status": "error", "message": "Invalid request method"})
