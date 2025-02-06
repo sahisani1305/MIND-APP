@@ -1,6 +1,7 @@
 import os
 import random
 from datetime import datetime
+import json
 from bson import ObjectId
 from django.conf import settings
 from django.contrib.auth import authenticate, login as auth_login, logout
@@ -11,6 +12,7 @@ from django.shortcuts import render, redirect
 from django.utils import timezone
 from pymongo import MongoClient
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from .decorators import admin_required
 import openai
 from openai import OpenAI
@@ -21,6 +23,8 @@ db = client.mindmate_db
 questions_collection = db.questions  # Assuming your collection is named 'questions'
 key="xxxx" # Replace with your OpenAI API key
 archive_collection = db.archive_conversations
+journals = db['journals']
+
 # Option mapping
 option_mapping = {
     0: "Did not apply to me at all",
@@ -374,6 +378,27 @@ def user_view(request):
         latest_recommendation_date = all_recommendations[0]['timestamp'].strftime('%Y-%m-%d')
         has_recommended_today = (latest_recommendation_date == today_date)
 
+    # Fetch journal entries and calculate average scores
+    journal_doc = db.journals.find_one({'user': request.user.username})
+    journal_entries = journal_doc.get('journals', []) if journal_doc else []
+    db_average_scores = journal_doc.get('average_scores', {}) if journal_doc else {}
+
+    average_scores = {
+        'mood': db_average_scores.get('mood', 0),
+        'diet': db_average_scores.get('diet', 0),
+        'sleep': db_average_scores.get('sleep', 0),
+        'physical_activity': db_average_scores.get('physical_activity', 0)
+    }
+
+    # Create a prompt for journal analysis
+    journal_prompt = (
+        f"Analyze the following journal entries for the user {request.user.username}:\n"
+        f"Journal Entries: {journal_entries}\n"
+        f"Average Scores: {average_scores}\n"
+        f"Based on the entries, provide insights on mood, diet, sleep, and physical activity."
+    )
+    print(journal_prompt)
+
     # Handle button click to generate new recommendations
     if request.method == 'POST' and 'generate_recommendations' in request.POST:
         if latest_assessment and not has_recommended_today:  # Only generate if no recommendation exists for today
@@ -385,28 +410,41 @@ def user_view(request):
             # Create a prompt for the NLP model
             prompt = (
                 f"A {user_data.get('age', 'unknown')}-year-old {user_data.get('gender', 'unknown')} "
-                f"{user_data.get('occupation', 'unknown')} with the following mental health assessment:\n"
-                f"Depression: {severity.get('depression', 'Not specified')}\n"
-                f"Anxiety: {severity.get('anxiety', 'Not specified')}\n"
-                f"Stress: {severity.get('stress', 'Not specified')}\n"
-                f"Selected options:\n"
+                f"{user_data.get('occupation', 'unknown')} with:\n"
+                f"Mental Health Assessment:\n"
+                f"- Depression: {severity.get('depression', 'Not specified')}\n"
+                f"- Anxiety: {severity.get('anxiety', 'Not specified')}\n"
+                f"- Stress: {severity.get('stress', 'Not specified')}\n"
+                f"\nLifestyle Insights from Journal Entries:\n"
+                f"- Mood: {average_scores['mood']:.1f}% (Average Score)\n"
+                f"- Diet: {average_scores['diet']:.1f}% (Average Score)\n"
+                f"- Sleep: {average_scores['sleep']:.1f}% (Average Score)\n"
+                f"- Physical Activity: {average_scores['physical_activity']:.1f}% (Average Score)\n"
+                f"\nRecent Journal Entries Summary:\n"
+            )
+
+            # Add the last 3 journal entry excerpts
+            for entry in journal_entries[-3:]:
+                prompt += f"- {entry['content'][:100]}...\n"
+
+            prompt += (
+                f"\nSelected Assessment Options:\n"
             )
             for q, option_text in selected_options_text.items():
                 prompt += f"- {q}: {option_text}\n"
+
             prompt += (
-                """You are a compassionate mental health assistant.  
-                Based on the user's responses to the questionnaire, please:  
-                1. Provide highly specific and actionable tips to maintain, prevent, and address mental illnesses such as depression, anxiety, and stress. Tailor your advice based on the user's responses, considering factors such as age, gender, and occupation.
-                2. Offer candid, practical recommendations with realistic, implementable steps that target the user's current emotional state and potential mental health challenges.  
-                3. For each category (depression, anxiety, stress), provide exactly five points:  
-                    - Focus on cure where applicable, maintenance strategies, and preventive measures.  
-                    - Ensure that the suggestions are precise, realistic, and user-friendly.
-                Response should be:  
-                - Directly acknowledge specific mental health concerns.  
-                - Use formal but compassionate language.  
-                - Provide reality checks to give insight into the user's current state.  
-                - Offer clear, actionable steps to maintain and improve mental well-being, with targeted advice for depression, anxiety, and stress."""
-)
+                """\nYou are a compassionate mental health assistant. Please:\n"""
+                """1. Start by acknowledging the user's mental health status and lifestyle insights\n"""
+                """2. Provide specific recommendations that connect both assessment results and journal patterns\n"""
+                """3. For each category (depression, anxiety, stress), give 5 actionable tips considering:\n"""
+                """   - Their occupation and demographic\n"""
+                """   - Their daily habits revealed by journal entries\n"""
+                """   - Practical implementation strategies\n"""
+                """4. Include reality checks and maintenance strategies\n"""
+                """5. Structure response with clear headings and bullet points\n"""
+                """6. Use formal but compassionate tone with emojis for emphasis"""
+            )
 
             # Generate recommendations using the OpenRouter API
             recommendations = generate_text_with_openrouter(prompt)
@@ -441,7 +479,10 @@ def user_view(request):
         'user_data': user_data,
         'recommendations': latest_recommendation,  # Pass the latest recommendation to the template
         'all_recommendations': all_recommendations,  # Pass all recommendations to the template
-        'has_recommended_today': has_recommended_today  # Pass the flag to the template
+        'has_recommended_today': has_recommended_today,  # Pass the flag to the template
+        'average_scores': average_scores,  # Pass average scores to the template
+        'journal_entries': journal_entries,  # Pass journal entries to the template
+        'journal_prompt': journal_prompt  # Pass the journal prompt to the template
     })
 
 def logout_view(request):
@@ -507,7 +548,7 @@ def get_conversation(user_id):
         messages.extend(conv.get("messages", []))
     return messages
 
-def build_prompt(user_message, user_conversation, user_data=None, severity=None, include_helplines=False):
+def build_prompt(user_message, user_conversation, user_data=None, severity=None, include_helplines=False, average_scores=None):
     """
     Build the prompt for the OpenRouter API call based on the conditions.
     """
@@ -518,6 +559,8 @@ def build_prompt(user_message, user_conversation, user_data=None, severity=None,
     When asked about latest report information, provide the user with the latest mental health assessment report showing the gender, age, occupation, and the severity of depression, anxiety, and stress.
     Keep it in a conversational tone. Don't say too much information if not required or asked, and keep the responses short and simple.
     """
+    
+    # Add user data and severity information if available
     if user_data and severity:
         user_info = f"""
         User Information:
@@ -530,6 +573,19 @@ def build_prompt(user_message, user_conversation, user_data=None, severity=None,
         Stress: {severity.get('stress', 'Not specified')}
         """
         base_prompt += user_info
+    
+    # Add journal insights if average_scores are provided
+    if average_scores:
+        journal_prompt = f"""
+        Lifestyle Insights from Journal Entries:
+        - Mood: {average_scores.get('mood', 0):.1f}% (Average Score)
+        - Diet: {average_scores.get('diet', 0):.1f}% (Average Score)
+        - Sleep: {average_scores.get('sleep', 0):.1f}% (Average Score)
+        - Physical Activity: {average_scores.get('physical_activity', 0):.1f}% (Average Score)
+        """
+        base_prompt += journal_prompt
+    
+    # Add helpline numbers if requested
     if include_helplines:
         helplines = """
         Additionally, provide the user with Indian helpline numbers for mental health support when appropriate. The helplines are:
@@ -538,12 +594,14 @@ def build_prompt(user_message, user_conversation, user_data=None, severity=None,
         - Fortis Mental Health Helpline: 91-8376804102
         """
         base_prompt += helplines
+    
     # Format the conversation history
     conversation_history = "\n".join([f"{msg['role']}: {msg['message']}" for msg in user_conversation])
     base_prompt += f"\nConversation history:\n{conversation_history}\nUser message: {user_message}"
+    
     return base_prompt
 
-def generate_chat_with_openrouter(user_id, user_message, user_conversation, user_data=None, severity=None, include_helplines=False):
+def generate_chat_with_openrouter(user_id, user_message, user_conversation, user_data=None, severity=None, include_helplines=False, include_journal_info=False):
     """
     Generate text using the DeepSeek model via OpenRouter API.
     """
@@ -553,7 +611,7 @@ def generate_chat_with_openrouter(user_id, user_message, user_conversation, user
     )
     try:
         # Build the prompt dynamically
-        full_prompt = build_prompt(user_message, user_conversation, user_data, severity, include_helplines)
+        full_prompt = build_prompt(user_message, user_conversation, user_data, severity, include_helplines, include_journal_info)
         completion = client.chat.completions.create(
             model="meta-llama/llama-3.2-90b-vision-instruct:free",  # Use the correct DeepSeek model
             messages=[
@@ -579,28 +637,59 @@ def chatbot(request):
     if request.method == "POST":
         user_id = request.user.username  # Use the logged-in user's username
         user_message = request.POST.get("message")
+        
         # Save the user message to the conversation history
         save_conversation(user_id, "user", user_message, datetime.now())
+        
         # Retrieve entire conversation history for the user
         user_conversation = get_conversation(user_id)
+        
         # Fetch user data and assessment information for personalized responses
         user_data = db.users.find_one({'username': user_id})
         latest_assessment = db.assessments.find_one({'username': user_id}, sort=[('timestamp', -1)])
         severity = latest_assessment['severity'] if latest_assessment else None
+        
+        # Fetch journal entries and calculate average scores
+        journal_doc = db.journals.find_one({'user': user_id})
+        journal_entries = journal_doc.get('journals', []) if journal_doc else []
+        db_average_scores = journal_doc.get('average_scores', {}) if journal_doc else {}
+        
+        average_scores = {
+            'mood': db_average_scores.get('mood', 0),
+            'diet': db_average_scores.get('diet', 0),
+            'sleep': db_average_scores.get('sleep', 0),
+            'physical_activity': db_average_scores.get('physical_activity', 0)
+        }
+        
         # Determine if helplines or user information should be included in the prompt
         include_helplines = False
         include_user_info = False
+        include_journal_info = False
         if "latest report" in user_message.lower() or "reports information" in user_message.lower():
             include_user_info = True
         if "helpline" in user_message.lower() or "help based on my reports" in user_message.lower():
             include_helplines = True
             if "help based on my reports" in user_message.lower():
                 include_user_info = True
-        response_text = generate_chat_with_openrouter(user_id, user_message, user_conversation, user_data if include_user_info else None, severity if include_user_info else None, include_helplines)
+        if "journal information" in user_message.lower() or "journal" in user_message.lower():
+            include_journal_info = True
+        
+        # Generate response with journal information included
+        response_text = generate_chat_with_openrouter(
+            user_id,
+            user_message,
+            user_conversation,
+            user_data if include_user_info else None,
+            severity if include_user_info else None,
+            include_helplines,
+            average_scores if include_journal_info else None  # Pass the average scores to the response generation
+        )
+        
         if response_text:
             return JsonResponse({"response": response_text})
         else:
             return JsonResponse({"error": "Failed to generate a response from the model."})
+    
     elif request.method == "GET":
         user_id = request.user.username  # Use the logged-in user's username
         # Retrieve entire conversation history for the user
@@ -608,8 +697,8 @@ def chatbot(request):
         # Prepare the conversation history for display
         conversation_history = [{"role": msg["role"], "message": msg["message"]} for msg in user_conversation]
         return JsonResponse({"conversation_history": conversation_history})
+    
     return JsonResponse({"error": "Invalid request method."})
-
 
 @csrf_exempt
 def archive_chat(request):
@@ -653,3 +742,243 @@ def archive_chat(request):
             return JsonResponse({"status": "error", "message": str(e)})
     
     return JsonResponse({"status": "error", "message": "Invalid request method"})
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
+from pymongo import MongoClient
+from datetime import datetime
+from bson import ObjectId
+import openai
+import json
+import time
+
+def analyze_journal_content(content):
+    client = openai.OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=key,
+    )
+
+    prompt = f"""Please analyze the following journal entry and evaluate the user's mood, diet, sleep, and physical activity. 
+For each aspect, provide a score of 1 for positive mentions and 0 for negative mentions. 
+If an aspect is not mentioned, indicate that it was not mentioned.
+
+Output the results in a structured format:
+- mood: {{ "score": 0, "mentioned": true }}
+- diet: {{ "score": 0, "mentioned": true }}
+- sleep: {{ "score":0, "mentioned": false }}
+- physical_activity: {{ "score": 0, "mentioned": true }}
+
+Journal Entry: {content}
+Response:"""
+
+    retries = 3
+    for attempt in range(retries):
+        try:
+            completion = client.chat.completions.create(
+                model="meta-llama/llama-3.2-90b-vision-instruct:free",
+                messages=[{"role": "system", "content": prompt}],
+                max_tokens=6000
+            )
+
+            print(f"Raw API response: {completion}")  # Debug line
+
+            if completion and completion.choices:
+                response = completion.choices[0].message.content
+                print(f"Response content: {response}")  # Debug line
+
+                if not response:
+                    print("Received an empty response from the API.")  # Debug line
+                    return None
+
+                analysis = {
+                    "mood": {"score": 0, "mentioned": False},
+                    "diet": {"score": 0, "mentioned": False},
+                    "sleep": {"score":0, "mentioned": False},
+                    "physical_activity": {"score": 0, "mentioned": False}
+                }
+
+                if 'mood: { "score": 1, "mentioned": true }' in response:
+                    analysis["mood"]["score"] = 1
+                    analysis["mood"]["mentioned"] = True
+                if 'diet: { "score": 1, "mentioned": true }' in response:
+                    analysis["diet"]["score"] = 1
+                    analysis["diet"]["mentioned"] = True
+                if 'sleep: { "score": 1, "mentioned": true }' in response:
+                    analysis["sleep"]["score"] = 1
+                    analysis["sleep"]["mentioned"] = True
+                if 'physical_activity: { "score": 1, "mentioned": true }' in response:
+                    analysis["physical_activity"]["score"] = 1
+                    analysis["physical_activity"]["mentioned"] = True
+
+                return analysis
+            else:
+                print("No choices returned from the API response.")  # Debug line
+                return None
+        except openai.error.RateLimitError:
+            print(f"Rate limit exceeded. Retrying in {2 ** attempt} seconds...")
+            time.sleep(2 ** attempt)
+        except Exception as e:
+            print(f"Error analyzing journal: {e}")  # Debug line
+            return None
+
+
+@csrf_exempt
+def save_journal(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            content = data.get('content')
+
+            if not request.user.is_authenticated:
+                return JsonResponse({'success': False, 'error': 'User not authenticated'}, status=401)
+
+            # Analyze the journal entry content
+            analysis = analyze_journal_content(content)
+            
+            # Save the new journal entry with analysis
+            journal_entry = {
+                'content': content,
+                'timestamp': datetime.now(),
+                'analysis': analysis  # Store the analysis with the entry
+            }
+            
+            # Insert the new journal entry into the user's document
+            result = db.journals.update_one(
+                {'user': request.user.username},
+                {'$push': {'journals': journal_entry}},
+                upsert=True
+            )
+            # Analyze ONLY the new journal entry
+            analysis = analyze_journal_content(content)
+            
+            if analysis:
+                # Get existing cumulative scores from database
+                user_data = journals.find_one({'user': request.user.username})
+                cumulative_scores = user_data.get('cumulative_scores', {
+                    'mood': {'score': 0, 'count': 0},
+                    'diet': {'score': 0, 'count': 0},
+                    'sleep': {'score': 0, 'count': 0},
+                    'physical_activity': {'score': 0, 'count': 0}
+                })
+
+                # Update cumulative scores with new analysis
+                for entity in ['mood', 'diet', 'sleep', 'physical_activity']:
+                    entity_data = analysis.get(entity, {'score': 0, 'mentioned': False})
+                    if entity_data['mentioned']:
+                        cumulative_scores[entity]['score'] += entity_data['score']
+                        cumulative_scores[entity]['count'] += 1  # Increment count for mentioned
+                    else:
+                        # If mentioned is true and score is 0, still increment count
+                        if entity_data['score'] == 0:
+                            cumulative_scores[entity]['count'] += 1
+
+                # Calculate new average scores
+                average_scores = {}
+                for entity in cumulative_scores:
+                    total = cumulative_scores[entity]['score']
+                    count = cumulative_scores[entity]['count']
+                    average_scores[entity] = (total / count * 10) if count > 0 else 0
+
+                # Update database with new scores
+                journals.update_one(
+                    {'user': request.user.username},
+                    {'$set': {
+                        'cumulative_scores': cumulative_scores,
+                        'average_scores': average_scores
+                    }}
+                )
+
+            return JsonResponse({'success': True})
+        except Exception as e:
+            print(f"Error: {e}")
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+def convert_objectid_to_str(data):
+    """Recursively convert ObjectId instances to strings in a data structure."""
+    if isinstance(data, list):
+        return [convert_objectid_to_str(item) for item in data]
+    elif isinstance(data, dict):
+        return {key: convert_objectid_to_str(value) for key, value in data.items()}
+    elif isinstance(data, ObjectId):
+        return str(data)
+    return data
+
+@login_required
+@csrf_exempt
+def get_journals(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    all_journals = list(journals.find({'user': request.user.username}).sort('journals.timestamp', -1))
+    
+    for user_journal in all_journals:
+        for journal in user_journal['journals']:
+            if '_id' not in journal:
+                journal['_id'] = ObjectId()  # Ensure each journal entry has an _id
+                journals.update_one(
+                    {'user': request.user.username, 'journals.timestamp': journal['timestamp']},
+                    {'$set': {'journals.$._id': journal['_id']}}
+                )
+            journal['_id'] = str(journal['_id'])  # Convert ObjectId to string
+            journal['timestamp'] = journal['timestamp'].isoformat()
+            journal['scores'] = journal.get('scores', {})
+            journal['average_score'] = journal.get('average_scores', {})
+    
+    # Convert all ObjectId instances to strings before returning
+    all_journals = convert_objectid_to_str(all_journals)
+    
+    return JsonResponse(all_journals, safe=False)
+
+@login_required
+@csrf_exempt
+def get_journal(request, journal_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    try:
+        journal_entry = journals.find_one({
+            'journals._id': ObjectId(journal_id),
+            'user': request.user.username
+        }, {'journals.$': 1})
+        
+        if journal_entry and 'journals' in journal_entry:
+            journal = journal_entry['journals'][0]
+            journal['_id'] = str(journal['_id'])  # Convert ObjectId to string
+            journal['timestamp'] = journal['timestamp'].isoformat()
+            journal['scores'] = journal.get('scores', {})
+            journal['average_score'] = journal.get('average_scores', {})
+            return JsonResponse(journal)
+        
+        return JsonResponse({'error': 'Journal not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Invalid journal ID: {e}'}, status=400)
+    
+def journal_view(request):
+    return render(request, 'journal.html')
+
+@csrf_exempt
+def delete_journal(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            entry_id = data.get('entry_id')
+
+            if not request.user.is_authenticated:
+                return JsonResponse({'success': False, 'error': 'User not authenticated'}, status=401)
+
+            # Find and delete the journal entry
+            result = journals.update_one(
+                {'user': request.user.username},
+                {'$pull': {'journals': {'_id': ObjectId(entry_id)}}}
+            )
+
+            if result.modified_count > 0:
+                return JsonResponse({'success': True})
+            else:
+                return JsonResponse({'success': False, 'error': 'Entry not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})

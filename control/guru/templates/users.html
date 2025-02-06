@@ -2128,34 +2128,53 @@
                 display: block;
             }
         }
-        /* Styling for logout button */
-        .logout-link {
-            position: absolute;
-            bottom: auto; /* Keeps the logout at the bottom of the panel */
-            width: 100%; /* Ensure it's full width */
-            padding: 10px;
-            text-align: center;
+        .logout-button {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: auto;
+            min-width: 160px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #FF4B2B, #FF416C);
+            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.3);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
-
-        .logout-link a {
-            color: white;
-            font-family: 'Comfortaa';
+        
+        .logout-button:hover {
+            transform: translateX(-50%) translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 75, 43, 0.4);
+        }
+        
+        .logout-button:active {
+            transform: translateX(-50%) translateY(0);
+            box-shadow: 0 2px 10px rgba(255, 75, 43, 0.2);
+        }
+        
+        .logout-button-content {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 8px 15px;
-            background-color: rgb(230, 76, 65); /* Red background for logout */
-            transition: background-color 0.3s ease;
+            gap: 12px;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 15px;
+            letter-spacing: 0.5px;
         }
-
-        .logout-link a:hover {
-            background-color: rgb(211, 43, 37); /* Darker red when hovered */
+        
+        .logout-button-content svg {
+            width: 18px;
+            height: 18px;
+            stroke-width: 2.5;
+            transition: transform 0.3s ease;
         }
-
-        .logout-link img {
-            margin-right: 10px;
-            width: 24px;
-            height: 24px;
+        
+        .logout-button:hover .logout-button-content svg {
+            transform: translateX(3px);
         }
     </style>
     <style>
@@ -2272,6 +2291,12 @@
                 <span style="font-family: 'Comfortaa'" class="tooltup">Assessment taken today, come back tomorrow</span>
             {% endif %}
             </div>
+            <div class="assessment-link" style="position: relative; display: inline-block; margin-top: 10px;">
+                <a href="{% url 'journal' %}" style="font-family: 'Comfortaa';display: flex; align-items: center;">
+                    <img src="" alt="Refresh Icon" style="margin-right: 5px; width: 32px; height: 32px;">
+                    Journal
+                </a>
+            </div>
             <div class="logout-link" style="position: relative; display: inline-block; margin-top: 10px;">
                 <a href="{% url 'logout' %}" style="font-family: 'Comfortaa';display: flex; align-items: center;">
                     <img src="/media/images/power.png" alt="Logout Icon" style="margin-right: 5px; width: 32px; height: 32px;">
@@ -2343,7 +2368,7 @@
             {% if scores %}
             <div class="line-graph-container">
                 <div class='text-container'>
-                <h2 style="font-size: 1em;">Cumulative Scores Over Time</h2>
+                <h2 style="font-size: 1em;">Cumulative Scores per week</h2>
                 </div>
                 <canvas id="lineChart"></canvas>
             </div>
@@ -2448,6 +2473,10 @@
                         <span class="item-icon">📊</span>
                         Latest Reports
                     </button>
+                    <button id="journalInfoBtn" class="dropdown-item">
+                        <span class="item-icon">📖</span>
+                        Journal
+                    </button>
                     <button id="clear-chat-btn" class="dropdown-item">
                         <span class="item-icon">🧹</span>
                         Clear Chat
@@ -2475,6 +2504,7 @@ let typingIndicator = document.getElementById("typing-indicator");
 const notificationBadge = document.getElementById("notification-badge");
 const overl = document.getElementById("overl");
 const clearChatBtn = document.getElementById("clear-chat-btn");
+const journalInfoBtn = document.getElementById("journalInfoBtn");
 
 // Chat State Management
 let isTyping = false;
@@ -2654,6 +2684,13 @@ sendButton.addEventListener("click", () => {
 // Chat Management
 userInfoBtn.addEventListener("click", () => {
   sendMessage("Please provide my latest reports information");
+  dropdownContent.style.display = "none";
+  dropdownBtn.classList.remove("open");
+  chatState.isDropdownOpen = false;
+});
+
+journalInfoBtn.addEventListener("click", () => {
+  sendMessage("Please provide my journal information");
   dropdownContent.style.display = "none";
   dropdownBtn.classList.remove("open");
   chatState.isDropdownOpen = false;
@@ -2970,16 +3007,16 @@ clearChatBtn.addEventListener("click", async () => {
         type: 'line',
         data: {
           labels: [
-            {% for score in daily_scores %}
-              '{{ score.date }}',
+            {% for score in daily_scores|slice:"-7:" %}  // <-- Add slice filter here
+            '{{ score.date }}',
             {% endfor %}
           ],
           datasets: [
             {
               label: 'Depression',
               data: [
-                {% for score in daily_scores %}
-                  {{ score.depression }},
+                {% for score in daily_scores|slice:"-7:" %}  // <-- Add slice filter here
+                {{ score.depression }},
                 {% endfor %}
               ],
               borderColor: 'rgba(255, 99, 132, 1)',
@@ -2992,8 +3029,8 @@ clearChatBtn.addEventListener("click", async () => {
             {
               label: 'Anxiety',
               data: [
-                {% for score in daily_scores %}
-                  {{ score.anxiety }},
+                {% for score in daily_scores|slice:"-7:" %}  // <-- Add slice filter here
+                {{ score.anxiety }},
                 {% endfor %}
               ],
               borderColor: 'rgba(54, 162, 235, 1)',
@@ -3006,8 +3043,8 @@ clearChatBtn.addEventListener("click", async () => {
             {
               label: 'Stress',
               data: [
-                {% for score in daily_scores %}
-                  {{ score.stress }},
+                {% for score in daily_scores|slice:"-7:" %}  // <-- Add slice filter here
+                {{ score.stress }},
                 {% endfor %}
               ],
               borderColor: 'rgba(75, 192, 192, 1)',

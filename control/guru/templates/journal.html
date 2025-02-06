@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Journal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href='https://fonts.googleapis.com/css?family=Comfortaa' rel='stylesheet'>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #83a4d4, #b6fbff);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .journal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+            margin-bottom: 80px;
+        }
+
+        .journal-preview {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .journal-preview h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .journal-preview p {
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .journal-input-container {
+            display: none;
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            width: 400px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            z-index: 999;
+        }
+
+        .journal-input-header {
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Add new modal styles */
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .preview-content {
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .preview-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .preview-body {
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .journal-preview {
+            cursor: pointer;
+        }
+
+        @media (max-width: 780px) {
+            .preview-content {
+                width: 95%;
+                margin: 10px;
+            }
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .journal-input-content {
+            padding: 15px;
+        }
+
+        #journalContent {
+            width: 95%;
+            height: 150px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: none;
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 780px) {
+            .journal-input-container {
+                width: 100%;
+                height: 100%;
+                display: none;
+                bottom: 0;
+                right: 0;
+            }
+
+            .journal-grid {
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .fab {
+                bottom: 20px;
+                right: 20px;
+            }
+            #journalContent {
+                width: 100%;
+            }
+        }
+
+        @media (min-width: 300px) and (max-width: 780px) {
+            .journal-preview {
+                margin: 10px 0;
+            }
+
+            #journalContent {
+                height: 200px;
+                width: 95%;
+            }
+
+            .journal-input-content {
+                padding: 20px;
+                bottom: 0;
+                right: 0;
+            }
+        }
+    </style>
+    <style>
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        
+        .delete-btn:hover {
+            background: #cc0000;
+        }
+        
+        .journal-preview {
+            position: relative;
+        }
+        </style>
+</head>
+<body>
+    <div class="background"></div>
+    <div class="container">
+        <h1 style="font-family: 'Comfortaa'">My Journal</h1>
+        <div class="journal-grid" id="journalGrid"></div>
+    </div>
+
+    <button class="fab" onclick="toggleJournalInput()">+</button>
+
+    <div class="journal-input-container" id="journalInput">
+        <div class="journal-input-header">
+            <span>New Journal Entry</span>
+            <button class="close-btn" onclick="toggleJournalInput()">×</button>
+        </div>
+        <div class="journal-input-content">
+            <textarea id="journalContent" placeholder="Write your journal here..."></textarea>
+            <button class="save-btn" onclick="saveJournal()">Save</button>
+        </div>
+    </div>
+<!-- Add preview modal -->
+<div class="preview-modal" id="previewModal">
+    <div class="preview-content">
+        <div class="preview-header">
+            <h3 id="previewDate"></h3>
+            <button class="preview-close" onclick="closePreview()">×</button>
+        </div>
+        <div class="preview-body" id="previewBody"></div>
+    </div>
+</div>
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadJournalEntries);
+
+    function loadJournalEntries() {
+        fetch('/get_journals/', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to load journal entries');
+            return response.json();
+        })
+        .then(journals => {
+            const grid = document.getElementById('journalGrid');
+            grid.innerHTML = '';
+            journals.forEach(journal => {
+                journal.journals.forEach(entry => {
+                    const preview = createJournalPreview(entry);
+                    grid.appendChild(preview);
+                });
+            });
+        })
+        .catch(error => console.error('Error loading journal entries:', error));
+    }
+
+    function toggleJournalInput() {
+        const container = document.getElementById('journalInput');
+        container.style.display = container.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function saveJournal() {
+        const content = document.getElementById('journalContent').value;
+        
+        fetch('/save_journal/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ content: content })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to save journal');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                document.getElementById('journalContent').value = '';
+                toggleJournalInput();
+                loadJournalEntries();
+            }
+        })
+        .catch(error => console.error('Error saving journal:', error));
+    }
+</script>
+<script>
+    function createJournalPreview(entry) {
+        const div = document.createElement('div');
+        div.className = 'journal-preview';
+        div.dataset.entryId = entry._id;  // Ensure _id is used correctly
+        const timestamp = new Date(entry.timestamp).toLocaleString();
+        div.innerHTML = `
+            <h3>${timestamp}</h3>
+            <p>${entry.content}</p>
+            <button class="delete-btn">×</button>
+        `;
+        div.querySelector('.delete-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteJournal(entry._id);  // Use _id for deletion
+        });
+        div.onclick = () => showPreview(timestamp, entry.content);
+        return div;
+    }        
+
+    function showPreview(timestamp, content) {
+        document.getElementById('previewDate').textContent = timestamp;
+        document.getElementById('previewBody').textContent = content;
+        document.getElementById('previewModal').style.display = 'flex';
+    }
+
+    function closePreview() {
+        document.getElementById('previewModal').style.display = 'none';
+    }
+
+    document.getElementById('previewModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closePreview();
+        }
+    });
+</script>
+<script>
+    function deleteJournal(entryId) {
+        if (confirm('Are you sure you want to delete this entry?')) {
+            fetch('/delete_journal/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ entry_id: entryId }),
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to delete entry');
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    const entryElement = document.querySelector(`[data-entry-id="${entryId}"]`);
+                    if (entryElement) entryElement.remove();
+                }
+            })
+            .catch(error => console.error('Error deleting entry:', error));
+        }
+    }
+</script>
+</body>
+</html>
