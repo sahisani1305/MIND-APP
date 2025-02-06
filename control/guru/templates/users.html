@@ -3130,17 +3130,24 @@ clearChatBtn.addEventListener("click", async () => {
     // Check for screen orientation changes
     function checkOrientation() {
         const rotatePrompt = document.getElementById('rotateDevicePrompt');
-        if (window.innerHeight > window.innerWidth) {
-            // Portrait mode
-            rotatePrompt.style.display = 'none';
+        const isMobile = window.innerWidth <= 800; // Check if the display width is 500px or less
+
+        if (isMobile) {
+            if (window.innerHeight > window.innerWidth) {
+                // Portrait mode
+                rotatePrompt.style.display = 'none'; // Show prompt in portrait mode
+            } else {
+                // Landscape mode
+                rotatePrompt.style.display = 'flex'; // Hide prompt in landscape mode
+            }
         } else {
-            // Landscape mode
-            rotatePrompt.style.display = 'flex';
+            // If not mobile, hide the prompt
+            rotatePrompt.style.display = 'none';
         }
     }
 
     // Initial check on load
-    checkOrientation();
+    window.onload = checkOrientation;
 
     // Listen for orientation changes
     window.addEventListener('resize', checkOrientation);
