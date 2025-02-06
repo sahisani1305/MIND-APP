@@ -21,29 +21,6 @@
             z-index: -1;
         }
 
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .overlay-message {
-            font-size: 24px;
-            text-align: center;
-            padding: 20px;
-            background-color: rgba(0, 0, 0, 0.5);
-            border-radius: 10px;
-            max-width: 80%;
-        }
-        
         .page-header {
             text-align: center;
             padding: 10px;
@@ -110,19 +87,24 @@
             margin-bottom: 8px;
             padding-left: 20px;
         }
-
+        
         .radio-option input[type="radio"] {
             display: none;
         }
-
+        
         .radio-option label {
             position: relative;
             padding-left: 30px;
             cursor: pointer;
             color: #2c3e50;
             user-select: none;
+            transition: color 0.3s ease;
         }
-
+        
+        .radio-option label:hover {
+            color: #2980b9;
+        }
+        
         .radio-option label::before {
             content: '';
             position: absolute;
@@ -135,32 +117,90 @@
             border-radius: 50%;
             background-color: white;
             box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        .radio-option input[type="radio"]:checked + label::before {
-            background-color: #2ecc71;
-            border: 2px solid #2ecc71; /* Green border to match the background */
-            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.3);
-        }
-
+        
         .radio-option label::after {
-            content: '✔';
+            content: '';
             position: absolute;
-            left: 2px;
+            left: 7px;
             top: 50%;
-            bottom: -40px;
-            transform: translateY(-50%);
-            color: white;
-            font-size: 10px; /* Increase size for overflow effect */
+            transform: translateY(-50%) scale(0);
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #3498db;
             opacity: 0;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            transform-origin: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
+        
+        /* Hover effect */
+        .radio-option:hover label::before {
+            border-color: #2980b9;
+        }
+        
+        /* Checked state */
+        .radio-option input[type="radio"]:checked + label::before {
+            border-color: #3498db;
+            animation: radioCheck 0.4s ease-out;
+        }
+        
         .radio-option input[type="radio"]:checked + label::after {
+            transform: translateY(-50%) scale(1);
             opacity: 1;
-            transform: translateY(-50%) scale(1.2); /* Slightly scale up the tick */
+            animation: dotAppear 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Animations */
+        @keyframes radioCheck {
+            0% {
+                transform: translateY(-50%) scale(1);
+            }
+            50% {
+                transform: translateY(-50%) scale(0.9);
+            }
+            100% {
+                transform: translateY(-50%) scale(1);
+            }
+        }
+        
+        @keyframes dotAppear {
+            0% {
+                transform: translateY(-50%) scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: translateY(-50%) scale(1.1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        /* Focus state */
+        .radio-option input[type="radio"]:focus + label::before {
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        /* Active state */
+        .radio-option input[type="radio"]:active + label::before {
+            transform: translateY(-50%) scale(0.9);
+        }
+        
+        /* Ripple effect */
+        .radio-option input[type="radio"]:checked + label::before {
+            animation: radioRipple 0.6s ease-out;
+        }
+        
+        @keyframes radioRipple {
+            from {
+                box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.2);
+            }
+            to {
+                box-shadow: 0 0 0 12px rgba(52, 152, 219, 0);
+            }
         }
 
         button[type="submit"] {
@@ -239,17 +279,85 @@
         }
 
     </style>
+    <style>
+        .rotate-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0,0,0,0.9), rgba(20,20,20,0.95));
+            color: white;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            backdrop-filter: blur(5px);
+            animation: overlayEntry 0.5s ease-out;
+        }
+        
+        .rotate-message {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            max-width: 80%;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform-style: preserve-3d;
+        }
+        
+        .rotate-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            animation: rotatePulse 2s infinite;
+        }
+        
+        .rotate-message p {
+            font-size: 1.5rem;
+            margin: 0 0 1rem 0;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+        
+        .rotate-hint {
+            display: block;
+            opacity: 0.7;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+        
+        @keyframes rotatePulse {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(90deg) scale(1.2); }
+            100% { transform: rotate(90deg) scale(1); }
+        }
+        
+        @keyframes overlayEntry {
+            from { opacity: 0; backdrop-filter: blur(0px); }
+            to { opacity: 1; backdrop-filter: blur(5px); }
+        }
+        
+        @media (max-width: 768px) {
+            .rotate-message p {
+                font-size: 1.2rem;
+            }
+            .rotate-icon {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="background"></div>
-
-    <!-- Overlay for mobile portrait mode -->
-    <div class="overlay" id="orientationOverlay">
-        <div class="overlay-message">
-            Please switch to landscape mode for a better experience.
+    <div class="rotate-overlay" id="rotateDevicePrompt">
+        <div class="rotate-message">
+            <div class="rotate-icon">↻</div>
+            <p>Please switch to Landscape mode for a better experience</p>
+            <small class="rotate-hint">(Device rotation not supported? Try resizing your window)</small>
         </div>
     </div>
-
+    
     <div class="page-header">
         <h1>Mental Health Assessment</h1>
         <p>Answer the following questions based on your feelings over the past week.</p>
@@ -328,24 +436,26 @@
 
         // Show the first question initially
         showQuestion(currentQuestion);
-
+    </script>
+    <script>
         // Check for screen orientation changes
         function checkOrientation() {
-            const overlay = document.getElementById('orientationOverlay');
+            const rotatePrompt = document.getElementById('rotateDevicePrompt');
             if (window.innerHeight > window.innerWidth) {
                 // Portrait mode
-                overlay.style.display = 'flex';
+                rotatePrompt.style.display = 'flex';
             } else {
                 // Landscape mode
-                overlay.style.display = 'none';
+                rotatePrompt.style.display = 'none';
             }
         }
-
+    
         // Initial check on load
         checkOrientation();
-
+    
         // Listen for orientation changes
         window.addEventListener('resize', checkOrientation);
     </script>
+    
 </body>
 </html>

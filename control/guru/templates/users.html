@@ -2158,9 +2158,84 @@
             height: 24px;
         }
     </style>
+    <style>
+        .rotate-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0,0,0,0.9), rgba(20,20,20,0.95));
+            color: white;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            backdrop-filter: blur(5px);
+            animation: overlayEntry 0.5s ease-out;
+        }
+        
+        .rotate-message {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            max-width: 80%;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform-style: preserve-3d;
+        }
+        
+        .rotate-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            animation: rotatePulse 2s infinite;
+        }
+        
+        .rotate-message p {
+            font-size: 1.5rem;
+            margin: 0 0 1rem 0;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+        
+        .rotate-hint {
+            display: block;
+            opacity: 0.7;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+        
+        @keyframes rotatePulse {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(90deg) scale(1.2); }
+            100% { transform: rotate(90deg) scale(1); }
+        }
+        
+        @keyframes overlayEntry {
+            from { opacity: 0; backdrop-filter: blur(0px); }
+            to { opacity: 1; backdrop-filter: blur(5px); }
+        }
+        
+        @media (max-width: 768px) {
+            .rotate-message p {
+                font-size: 1.2rem;
+            }
+            .rotate-icon {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="background"></div>
+    <div class="rotate-overlay" id="rotateDevicePrompt">
+        <div class="rotate-message">
+            <div class="rotate-icon">↻</div>
+            <p>Please switch to Portrait mode for a better experience</p>
+            <small class="rotate-hint">(Device rotation not supported? Try resizing your window)</small>
+        </div>
+    </div>
     <div class="content-overlay" id="overlay"></div>
     <div class="side-panel" id="sidePanel">
         <div class="toggle-btn" onclick="toggleSidePanel()">
@@ -3051,5 +3126,24 @@ clearChatBtn.addEventListener("click", async () => {
     }    
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Check for screen orientation changes
+    function checkOrientation() {
+        const rotatePrompt = document.getElementById('rotateDevicePrompt');
+        if (window.innerHeight > window.innerWidth) {
+            // Portrait mode
+            rotatePrompt.style.display = 'none';
+        } else {
+            // Landscape mode
+            rotatePrompt.style.display = 'flex';
+        }
+    }
+
+    // Initial check on load
+    checkOrientation();
+
+    // Listen for orientation changes
+    window.addEventListener('resize', checkOrientation);
+</script>
 </body>
 </html>
