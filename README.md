@@ -1,5 +1,6 @@
 # MindMate - AI-Powered Mental Health Assessment & Coping Web App
 
+![MindMate Banner](https://your-new-image-link.com)
 
 ## 🚀 Overview
 MindMate is an AI-driven web application designed to revolutionize mental health care by integrating advanced assessment techniques with intelligent coping strategies. Leveraging state-of-the-art machine learning models and natural language processing (NLP), MindMate provides users with dynamic mental health evaluations, personalized AI-driven coping recommendations, and a suite of interactive tools to enhance emotional resilience and well-being.
@@ -16,7 +17,7 @@ MindMate is an AI-driven web application designed to revolutionize mental health
 - **Interactive Progress Visualization**: AI-driven analytics help users monitor improvements with streak calendars, line graphs, and insights.
 - **Adaptive Journaling & Habit Tracking**: AI analyzes journal entries to detect emotional states and suggest habits for improvement.
 - **Real-Time Chatbot Assistance**: NLP-powered chatbot provides instant responses, encouragement, and coping mechanisms.
-- **Secure Authentication & Data Encryption**: Ensures user privacy with encrypted storage and secure login.
+- **Secure Authentication**: Ensures user privacy with secure login and protected access controls.
 
 ## 🏗️ Technology Stack
 ### Front-End
@@ -72,7 +73,7 @@ python manage.py runserver
 - **Continuous Model Training**: AI models are regularly updated to improve recommendation accuracy.
 
 ## 🔒 Security & Privacy Measures
-- End-to-end encryption for all user data.
+- Planned encryption for future updates to enhance data security.
 - Secure authentication using Django’s built-in system.
 - AI model ethics & bias testing to ensure fairness in recommendations.
 - GDPR & HIPAA compliance for mental health data security.
