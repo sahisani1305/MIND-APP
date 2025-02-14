@@ -1,7 +1,4 @@
 # MindMate: Comprehensive Mental Health Assessment & Coping Web App  
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)  
-
-![MindMate Banner](C:\Users\NAME\Desktop\Data science simple learn\Screenshot 2025-02-04 190517.png)  
 
 ## 🌟 Overview  
 **MindMate** is a forward-thinking web application designed to address the global mental health crisis by integrating **daily mental health assessments**, **AI-driven coping strategies**, and a suite of holistic tools like journaling, habit tracking, and real-time chatbot support. Built for the **AI Autonomous Hackathon**, MindMate bridges the gap between mental health evaluation and ongoing management, offering users a comprehensive ecosystem for mental well-being.  
