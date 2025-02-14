@@ -76,7 +76,7 @@ Contributions are welcome! To contribute:
 ## 💌 Contact
 - **Mentor**: Mohammed Hassaan Ali
 For any questions or collaboration opportunities, please reach out to:
-- **Team Members**: [Mohammed Ameen Ul Haq](https://www.linkedin.com/in/mohammed-ameen-ul-haq-a37b0b234/), Mohammed Shaik Sahil, Rajapatel Mohammed Sumair, Abdullah Abu Imam
+- **Team Members**: [Mohammed Ameen Ul Haq](https://www.linkedin.com/in/mohammed-ameen-ul-haq-a37b0b234/), [Mohammed Shaik Sahil](https://www.linkedin.com/in/mdshaiksahil/), Rajapatel Mohammed Sumair, Abdullah Abu Imam
 
 ---
 
