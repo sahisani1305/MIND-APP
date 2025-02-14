@@ -1,7 +1,5 @@
 # MindMate - AI-Powered Mental Health Assessment & Coping Web App
 
-![MindMate Banner](https://your-new-image-link.com)
-
 ## 🚀 Overview
 MindMate is an AI-driven web application designed to revolutionize mental health care by integrating advanced assessment techniques with intelligent coping strategies. Leveraging state-of-the-art machine learning models and natural language processing (NLP), MindMate provides users with dynamic mental health evaluations, personalized AI-driven coping recommendations, and a suite of interactive tools to enhance emotional resilience and well-being.
 
